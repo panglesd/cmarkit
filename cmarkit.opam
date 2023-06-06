@@ -31,23 +31,11 @@ doc: "https://erratique.ch/software/cmarkit/doc"
 bug-reports: "https://github.com/dbuenzli/cmarkit/issues"
 depends: [
   "ocaml" {>= "4.14.0"}
-  "ocamlfind" {build}
-  "ocamlbuild" {build}
-  "topkg" {build & >= "1.0.3"}
-  "uucp" {dev}
-  "b0" {dev & with-test}
+  "dune"
 ]
 depopts: ["cmdliner"]
 conflicts: [
   "cmdliner" {< "1.1.0"}
 ]
-build: [
-  "ocaml"
-  "pkg/pkg.ml"
-  "build"
-  "--dev-pkg"
-  "%{dev}%"
-  "--with-cmdliner"
-  "%{cmdliner:installed}%"
-]
+build: [ "dune" "build" "-p" name "-j" jobs ]
 dev-repo: "git+https://erratique.ch/repos/cmarkit.git"
