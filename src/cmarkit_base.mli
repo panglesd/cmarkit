@@ -311,6 +311,7 @@ type line_type =
 | Thematic_break_line of last
 | Ext_table_row of last
 | Ext_footnote_label of rev_spans * last * string
+| Ext_attributes of rev_spans list * last
 | Nomatch (* built-in [None] to avoid option allocs *)
 
 val thematic_break : string -> last:byte_pos -> start:byte_pos -> line_type
@@ -364,6 +365,11 @@ val ext_footnote_label :
   start:byte_pos -> line_type
 (** [ext_footnote_label s ~last ~start] matches a footnote label the range
     \[[start];[last]\]. The returned position is the rightmost [:].
+    This remains on the same line. *)
+
+val ext_attributes :
+  string -> last:byte_pos -> start:byte_pos -> line_type
+(** [ext_attributes s ~last ~start] matches an attribute specification.
     This remains on the same line. *)
 
 val could_be_link_reference_definition :

@@ -265,6 +265,63 @@ type 'a node = 'a * Meta.t
 (** The type for abstract syntax tree nodes. The data of type ['a] and its
     metadata. *)
 
+(** Node attributes.
+
+    Holds attributes, defined using the extension. *)
+module Attributes : sig
+
+  type t
+  (** The type for abstract syntax tree node attributes. *)
+
+  type key = string
+  (** The type for attributes keys. *)
+
+  type value = string
+  (** The type for attributes values. *)
+
+  val empty : t
+  (** [empty] is for when there is no attributes. *)
+
+  val is_empty : t -> bool
+
+  val make : ?kv_attributes:(key * value node) list -> ?id:string option -> ?class':string node list -> unit -> t
+  (** [make ~attributes] is TODO. *)
+
+  (** {1 Classes}) *)
+
+  val class' : t -> string node list
+  (** Returns the list of class. Keeps the order in which they
+      were defined. *)
+
+  val add_class : t -> string node -> t
+
+  val remove_class : t -> string -> t
+
+  (** {1 Classes}) *)
+
+  val id : t -> string node option
+
+  val set_id : t -> string node -> t
+
+  val remove_id : t -> t
+
+  (** {1 Key-value attributes}) *)
+
+  val mem : key -> t -> bool
+  (** [mem k m] is [true] iff [k] is bound in [m]. *)
+
+  val add : key -> value node -> t -> t
+  (** [add k v m] is [m] with key [k] bound to [v]. *)
+
+  val remove : key -> t -> t
+  (** [remove k m] is [m] with key [k] unbound in [v]. *)
+
+  val find : key -> t -> value node option
+  (** [find k m] the value of [k] in [m], if any. *)
+end
+
+type 'a attributed = 'a * Attributes.t
+
 (** Types for layout information.
 
     Values of these types do not represent document data. They are
