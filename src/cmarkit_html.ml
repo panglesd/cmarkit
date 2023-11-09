@@ -189,13 +189,19 @@ let link_dest_and_title c ld =
 
 let image ?(close = " >") c i =
   match Inline.Link.reference_definition (C.get_defs c) i with
-  | Some (Link_definition.Def (ld, _)) ->
+  | Some (Link_definition.Def ((ld, attributes), _)) ->
       let plain_text c i =
         let lines = Inline.to_plain_text ~break_on_soft:false i in
         String.concat "\n" (List.map (String.concat "") lines)
       in
       let link, title = link_dest_and_title c ld in
       C.string c "<img src=\""; pct_encoded_string c link;
+      let id = Attributes.id attributes in
+      (match id with
+         None -> ()
+       | Some (id, _) ->
+          C.string c "\" id=\"";
+          html_escaped_string c id);
       C.string c "\" alt=\"";
       html_escaped_string c (plain_text c (Inline.Link.text i));
       C.byte c '\"';
@@ -225,12 +231,18 @@ let link_footnote c l fn =
   end
 
 let link c l = match Inline.Link.reference_definition (C.get_defs c) l with
-| Some (Link_definition.Def (ld, _)) ->
+| Some (Link_definition.Def ((ld, attributes), _)) ->
     let link, title = link_dest_and_title c ld in
     C.string c "<a href=\""; pct_encoded_string c link;
+    let id = Attributes.id attributes in
+    (match id with
+       None -> ()
+     | Some (id, _) ->
+        C.string c "\" id=\"";
+        html_escaped_string c id);
     if title <> "" then (C.string c "\" title=\""; html_escaped_string c title);
     C.string c "\">"; C.inline c (Inline.Link.text l); C.string c "</a>"
-| Some (Block.Footnote.Def (fn, _)) -> link_footnote c l fn
+| Some (Block.Footnote.Def ((fn, todo), _)) -> link_footnote c l fn
 | None -> C.inline c (Inline.Link.text l); comment_undefined_label c l
 | Some _ -> C.inline c (Inline.Link.text l); comment_unknown_def_type c l
 
@@ -275,21 +287,52 @@ let inline c = function
 
 (* Block rendering *)
 
-let block_quote c bq =
-  C.string c "<blockquote>\n";
-  C.block c (Block.Block_quote.block bq);
-  C.string c "</blockquote>\n"
+let add_attr c (key, value) = match value with
+  | Some value -> C.string c (" " ^ key ^ "=" ^ value);
+  | None -> C.string c (" " ^ key)
 
-let code_block c cb =
+let add_attrs c ?(include_id = true) attrs =
+  List.iter (add_attr c) (Attributes.get_all ~include_id attrs)
+
+let open_block ?(with_newline = true) c tag attrs =
+  C.string c "<";
+  C.string c tag;
+  add_attrs c attrs;
+  C.string c ">";
+  if with_newline then C.string c "\n"
+
+let close_block ?(with_newline = true) c tag =
+  C.string c "</";
+  C.string c tag;
+  C.string c ">";
+  if with_newline then C.string c "\n"
+
+let in_block c ?(with_newline = true) tag attrs f =
+  open_block ~with_newline c tag attrs;
+  f ();
+  close_block ~with_newline c tag
+
+let with_attrs c attrs f =
+  if Attributes.is_empty attrs then f() else in_block c "div" attrs f
+
+let block_quote c attrs bq =
+  in_block c "blockquote" attrs @@ fun () ->
+  C.block c (Block.Block_quote.block bq)
+
+let code_block c attrs cb =
   let i = Option.map fst (Block.Code_block.info_string cb) in
   let lang = Option.bind i Block.Code_block.language_of_info_string in
   let line (l, _) = html_escaped_string c l; C.byte c '\n' in
   match lang with
   | Some (lang, _env) when backend_blocks c && lang.[0] = '=' ->
       if lang = "=html" && not (safe c)
-      then block_lines c (Block.Code_block.code cb) else ()
+      then
+        in_block c "div" attrs @@ fun () ->
+        block_lines c (Block.Code_block.code cb)
+      else ()
   | _ ->
-      C.string c "<pre><code";
+      (in_block c ~with_newline:false "pre" attrs @@ fun () ->
+      C.string c "<code";
       begin match lang with
       | None -> ()
       | Some (lang, _env) ->
@@ -298,15 +341,18 @@ let code_block c cb =
       end;
       C.byte c '>';
       List.iter line (Block.Code_block.code cb);
-      C.string c "</code></pre>\n"
+      C.string c "</code>");
+      C.byte c '\n'
 
-let heading c h =
+let heading c attrs h =
   let level = string_of_int (Block.Heading.level h) in
   C.string c "<h"; C.string c level;
+  add_attrs c ~include_id:false attrs;
   begin match Block.Heading.id h with
   | None -> C.byte c '>';
   | Some (`Auto id | `Id id) ->
       let id = unique_id c id in
+      let id = match Cmarkit.Attributes.id attrs with None -> id | Some (id, _) -> id in
       C.string c " id=\""; C.string c id;
       C.string c "\"><a class=\"anchor\" aria-hidden=\"true\" href=\"#";
       C.string c id; C.string c "\"></a>";
@@ -314,16 +360,18 @@ let heading c h =
   C.inline c (Block.Heading.inline h);
   C.string c "</h"; C.string c level; C.string c ">\n"
 
-let paragraph c p =
-  C.string c "<p>"; C.inline c (Block.Paragraph.inline p); C.string c "</p>\n"
+let paragraph c attrs p =
+  in_block c ~with_newline:false "p" attrs (fun () ->
+  C.inline c (Block.Paragraph.inline p));
+  C.string c "\n"
 
 let item_block ~tight c = function
 | Block.Blank_line _ -> ()
-| Block.Paragraph (p, _) when tight -> C.inline c (Block.Paragraph.inline p)
+| Block.Paragraph ((p, todo), _) when tight -> C.inline c (Block.Paragraph.inline p)
 | Block.Blocks (bs, _) ->
     let rec loop c add_nl = function
     | Block.Blank_line _ :: bs -> loop c add_nl bs
-    | Block.Paragraph (p,_) :: bs when tight ->
+    | Block.Paragraph ((p, todo),_) :: bs when tight ->
         C.inline c (Block.Paragraph.inline p); loop c true bs
     | b :: bs -> (if add_nl then C.byte c '\n'); C.block c b; loop c false bs
     | [] -> ()
@@ -375,15 +423,16 @@ let html_block c lines =
   if safe c then (comment c "CommonMark HTML block omitted"; C.byte c '\n') else
   List.iter line lines
 
-let thematic_break c = C.string c "<hr>\n"
+let thematic_break c = open_block c "hr"
 
-let math_block c cb =
+let math_block c attrs cb =
   let line l = html_escaped_string c (Block_line.to_string l); C.byte c '\n' in
+  with_attrs c attrs @@ fun () ->
   C.string c "\\[\n";
   List.iter line (Block.Code_block.code cb);
   C.string c "\\]\n"
 
-let table c t =
+let table c attrs t =
   let start c align tag =
     C.byte c '<'; C.string c tag;
     match align with
@@ -423,21 +472,22 @@ let table c t =
   | ((`Sep align, _), _) :: rs -> rows c col_count ~align rs
   | [] -> ()
   in
+  with_attrs c attrs @@ fun () ->
   C.string c "<div role=\"region\"><table>\n";
   rows c (Block.Table.col_count t) ~align:[] (Block.Table.rows t);
   C.string c "</table></div>"
 
 let block c = function
-| Block.Block_quote (bq, _) -> block_quote c bq; true
+| Block.Block_quote ((bq, attrs), _) -> block_quote c attrs bq; true
 | Block.Blocks (bs, _) -> List.iter (C.block c) bs; true
-| Block.Code_block (cb, _) -> code_block c cb; true
-| Block.Heading (h, _) -> heading c h; true
-| Block.Html_block (h, _) -> html_block c h; true
-| Block.List (l, _) -> list c l; true
-| Block.Paragraph (p, _) -> paragraph c p; true
-| Block.Thematic_break (_, _) -> thematic_break c; true
-| Block.Ext_math_block (cb, _) -> math_block c cb; true
-| Block.Ext_table (t, _) -> table c t; true
+| Block.Code_block ((cb, attrs), _) -> code_block c attrs cb; true
+| Block.Heading ((h, attrs), _) -> heading c attrs h; true
+| Block.Html_block ((h, todo), _) -> html_block c h; true
+| Block.List ((l, todo), _) -> list c l; true
+| Block.Paragraph ((p, attrs), _) -> paragraph c attrs p; true
+| Block.Thematic_break ((_, attrs), _) -> thematic_break c attrs; true
+| Block.Ext_math_block ((cb, attrs), _) -> math_block c attrs cb; true
+| Block.Ext_table ((t, attrs), _) -> table c attrs t; true
 | Block.Blank_line _
 | Block.Link_reference_definition _
 | Block.Ext_footnote_definition _ -> true

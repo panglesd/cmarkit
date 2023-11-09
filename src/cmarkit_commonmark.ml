@@ -226,7 +226,7 @@ let link_definition c ld =
   block_lines c layout.after_title
 
 let link c l = match Inline.Link.reference l with
-| `Inline (ld, _) ->
+| `Inline ((ld, _), _) ->
     C.byte c '['; C.inline c (Inline.Link.text l); C.byte c ']';
     C.byte c '('; link_definition c ld; C.byte c ')'
 | `Ref (`Shortcut, label, _) ->
@@ -404,20 +404,20 @@ let footnote c fn =
   pop_indent c
 
 let block c = function
-| Block.Blank_line (l, _) -> blank_line c l; true
-| Block.Block_quote (b, _) -> block_quote c b; true
+| Block.Blank_line ((l, _), _) -> blank_line c l; true
+| Block.Block_quote ((b, _), _) -> block_quote c b; true
 | Block.Blocks (bs, _) -> List.iter (C.block c) bs; true
-| Block.Code_block (cb, _) -> code_block c cb; true
-| Block.Heading (h, _) -> heading c h; true
-| Block.Html_block (h, _) -> html_block c h; true
-| Block.Link_reference_definition (ld, _) ->
+| Block.Code_block ((cb, _), _) -> code_block c cb; true
+| Block.Heading ((h, _), _) -> heading c h; true
+| Block.Html_block ((h, _), _) -> html_block c h; true
+| Block.Link_reference_definition ((ld, _), _) ->
     link_reference_definition c ld; true
-| Block.List (l, _) -> list c l; true
-| Block.Paragraph (p, _) -> paragraph c p; true
-| Block.Thematic_break (t, _) -> thematic_break c t; true
-| Block.Ext_math_block (cb, _) -> code_block c cb; true
-| Block.Ext_table (t, _) -> table c t; true
-| Block.Ext_footnote_definition (t, _) -> footnote c t; true
+| Block.List ((l, _), _) -> list c l; true
+| Block.Paragraph ((p, _), _) -> paragraph c p; true
+| Block.Thematic_break ((t, _), _) -> thematic_break c t; true
+| Block.Ext_math_block ((cb, _), _) -> code_block c cb; true
+| Block.Ext_table ((t, _), _) -> table c t; true
+| Block.Ext_footnote_definition ((t, _), _) -> footnote c t; true
 | _ -> newline c; indent c; C.string c "<!-- Unknown Cmarkit block -->"; true
 
 (* Document rendering *)
