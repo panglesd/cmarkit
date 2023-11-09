@@ -27,7 +27,7 @@ let media_link c l =
   let is_audio s = List.exists (has_ext s) [".mp3"; ".flac"] in
   let defs = Cmarkit_renderer.Context.get_defs c in
   match Cmarkit.Inline.Link.reference_definition defs l with
-  | Some Cmarkit.Link_definition.Def (ld, _) ->
+  | Some Cmarkit.Link_definition.Def ((ld, _), _) ->
       let start_tag = match Cmarkit.Link_definition.dest ld with
       | Some (src, _) when is_video src -> Some ("<video", src)
       | Some (src, _) when is_audio src -> Some ("<audio", src)
@@ -82,12 +82,12 @@ let set_unknown_code_block_lang ~lang doc =
   let open Cmarkit in
   let default = lang, Meta.none in
   let block m = function
-  | Block.Code_block (cb, meta)
+  | Block.Code_block ((cb, _), meta)
     when Option.is_none (Block.Code_block.info_string cb) ->
       let layout = Block.Code_block.layout cb in
       let code = Block.Code_block.code cb in
       let cb = Block.Code_block.make ~layout ~info_string:default code in
-      Mapper.ret (Block.Code_block (cb, meta))
+      Mapper.ret (Block.Code_block ((cb, Attributes.empty), meta))
   | _ ->
       Mapper.default (* let the mapper thread the map *)
   in
@@ -100,7 +100,7 @@ let code_block_langs doc =
   let open Cmarkit in
   let module String_set = Set.Make (String) in
   let block m acc = function
-  | Block.Code_block (cb, _) ->
+  | Block.Code_block ((cb, _), _) ->
       let acc = match Block.Code_block.info_string cb with
       | None -> acc
       | Some (info, _) ->

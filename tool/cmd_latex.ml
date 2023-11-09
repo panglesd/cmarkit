@@ -28,7 +28,7 @@ let lift_headings_map ~extract_title doc =
   let open Cmarkit in
   let title = ref None in
   let block m = function
-  | Block.Heading (h, meta) as b ->
+  | Block.Heading ((h, _), meta) as b ->
       let inline = Block.Heading.inline h in
       if extract_title && Option.is_none !title
       then (title := Some inline; Mapper.delete) else
@@ -37,7 +37,7 @@ let lift_headings_map ~extract_title doc =
       let id = Block.Heading.id h in
       let level = level - 1 in
       let h = Block.Heading.make ?id ~level inline in
-      Mapper.ret (Block.Heading (h, meta))
+      Mapper.ret (Block.Heading ((h, Attributes.empty), meta))
   | _ -> Mapper.default
   in
   let doc = Mapper.map_doc (Mapper.make ~block ()) doc in

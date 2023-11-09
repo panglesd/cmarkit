@@ -216,7 +216,7 @@ type line_span =
     last : Textloc.byte_pos }
 
 type line_start = Textloc.byte_pos
-type rev_spans = (line_start * line_span) list
+type rev_spans = (line_start (* kept for layout *) * line_span) list
 type 'a next_line = 'a -> ('a * line_span) option
 
 (* Node meta data *)
@@ -723,32 +723,40 @@ let attribute_name s ~last ~start : next option =
   if start > last || not (is_start s.[start]) then None else
   loop s last (start + 1)
 
-let attribute_value ~next_line s lines ~line spans ~start =
+let unquoted_attribute_value ~allow_curly ~next_line s lines ~line spans ~start =
+  (* https://spec.commonmark.org/current/#unquoted-attribute-value *)
+  let cont = function
+    | ' ' | '\t' | '\"' | '\'' | '=' | '<' | '>' | '`' -> false
+    (* Curly braces are forbidden in markdown attributes *)
+    | '{' | '}' -> allow_curly
+    | _ -> true
+  in
+  let rec loop s last k =
+    if k > last || not (cont s.[k]) then
+      let last = k - 1 in
+      Some (lines, line, push_span ~line start last spans, last)
+    else loop s last (k + 1)
+  in
+  loop s line.last (start + 1)
+
+let attribute_value ~allow_curly ~next_line s lines ~line spans ~start =
   (* https://spec.commonmark.org/current/#attribute-value *)
   if start > line.last then None else match s.[start] with
   | '\'' | '\"' as char ->
       (* https://spec.commonmark.org/current/#double-quoted-attribute-value
-         https://spec.commonmark.org/current/#unquoted-attribute-value *)
+         https://spec.commonmark.org/current/#single-quoted-attribute-value *)
       accept_to ~char ~next_line s lines ~line spans ~after:start
   | c ->
       (* https://spec.commonmark.org/current/#unquoted-attribute-value *)
-      let cont = function
-      | ' ' | '\t' | '\"' | '\'' | '=' | '<' | '>' | '`' -> false | _ -> true
-      in
-      let rec loop s last k =
-        if k > last || not (cont s.[k]) then
-          let last = k - 1 in
-          Some (lines, line, push_span ~line start last spans, last)
-        else loop s last (k + 1)
-      in
-      loop s line.last (start + 1)
+      unquoted_attribute_value ~allow_curly ~next_line s lines ~line spans ~start
 
-let attribute ~next_line s lines ~line spans ~start =
+let attribute ~allow_curly ~next_line s lines ~line spans ~start =
   (* https://spec.commonmark.org/current/#attribute *)
   (* https://spec.commonmark.org/current/#attribute-value-specification *)
   match attribute_name s ~last:line.last ~start with
   | None -> None
   | Some end_name ->
+      let name_span = {line with first = start ; last = end_name} in
       let spans = push_span ~line start end_name spans in
       let start = end_name + 1 in
       match first_non_blank_over_nl' ~next_line s lines ~line spans ~start with
@@ -756,7 +764,9 @@ let attribute ~next_line s lines ~line spans ~start =
       | Some (lines', line', spans', last_blank) ->
           let nb = last_blank + 1 in
           if s.[nb] <> '='
-          then Some (lines, line, spans, end_name) (* no value *) else
+          then
+            Some (lines, line, spans, end_name, (name_span, None)) (* no value *)
+          else
           let spans' = push_span ~line nb nb spans' in
           let start = nb + 1 in
           match
@@ -765,8 +775,37 @@ let attribute ~next_line s lines ~line spans ~start =
           with
           | None -> None
           | Some (lines, line, spans, last_blank) ->
-              let start = last_blank + 1 in
-              attribute_value ~next_line s lines ~line spans ~start
+             let start = last_blank + 1 in
+             let empty_spans = [] in
+              match
+                attribute_value ~allow_curly ~next_line s lines ~line
+                  empty_spans ~start
+              with
+              | None -> None
+              | Some (lines, line, value_span, last_attr_value) ->
+                 (* let print_spans s spans = *)
+                 (*   let print_line (i, {line_pos ; first ; last}) = *)
+                 (*     Format.printf "  line(_start): %d\n" i; *)
+                 (*     Format.printf "  line_pos: line_num: %d byte_pos: %d\n" (fst line_pos) (snd line_pos); *)
+                 (*     Format.printf "  first: %d\n" first; *)
+                 (*     Format.printf "  last: %d\n" last; *)
+                 (*     Format.printf "\n" *)
+                 (*   in *)
+                 (*   Format.printf "Printing %s:\n" s; *)
+                 (*   List.iter print_line spans *)
+                 (* in *)
+                 (* print_spans "value_span" value_span ; *)
+                 (* print_spans "spans" spans ; *)
+                 let spans =
+                   List.fold_right
+                     (fun (_, line) spans ->
+                       push_span ~line line.first line.last spans)
+                     value_span spans
+                 in
+                 (* print_spans "combined" spans ; *)
+                 Some
+                   (lines, line, spans, last_attr_value,
+                    (name_span, Some value_span))
 
 let open_tag ~next_line s lines ~line ~start:tag_start = (* tag_start has < *)
   (* https://spec.commonmark.org/current/#open-tag *)
@@ -789,9 +828,9 @@ let open_tag ~next_line s lines ~line ~start:tag_start = (* tag_start has < *)
                 Some (lines, line, push_span ~line next last spans, last)
             | c ->
                 if next = start then None else
-                match attribute ~next_line s lines ~line spans ~start:next with
+                match attribute ~allow_curly:true ~next_line s lines ~line spans ~start:next with
                 | None -> None
-                | Some (lines, line, spans, last) ->
+                | Some (lines, line, spans, last, _) ->
                     loop ~next_line s lines ~line spans ~start:(last + 1)
       in
       let start = tag_end_name + 1 in
@@ -1019,6 +1058,12 @@ let link_label b ~next_line s lines ~line ~start =
 type html_block_end_cond =
   [ `End_str of string | `End_cond_1 | `End_blank | `End_blank_7 ]
 
+type attributes = [
+  | `Class of rev_spans
+  | `Id of rev_spans
+  | `Kv_attr of  line_span * rev_spans option
+]
+
 type line_type =
 | Atx_heading_line of heading_level * byte_pos * first * last
 | Blank_line
@@ -1032,6 +1077,7 @@ type line_type =
 | Thematic_break_line of last
 | Ext_table_row of last
 | Ext_footnote_label of rev_spans * last * string
+| Ext_attributes of attributes list * last
 | Nomatch
 
 let thematic_break s ~last ~start =
@@ -1292,6 +1338,50 @@ let ext_footnote_label buf s ~line_pos ~last ~start =
   | None -> (* should not happen *) Nomatch
   | Some (_, _, rev_spans, _, key) ->
       Ext_footnote_label (rev_spans, colon, key)
+
+let md_attributes ~next_line s lines ~line ~start:attr_start =
+  (* attr_start has { *)
+  let start = attr_start + 1 in
+  let rec loop ~next_line s lines ~line attr_spans ~start =
+    match
+      first_non_blank_over_nl' ~next_line s lines ~line [] ~start
+    with
+    | None -> None
+    | Some (lines, line, spans, last_blank) ->
+       let next = last_blank + 1 in
+       match s.[next] with
+       | ('.' | '#') as c -> begin
+           match
+             unquoted_attribute_value ~allow_curly:false ~next_line s lines
+               ~line [] ~start:(next+1)
+           with
+           | None -> None
+           | Some (lines, line, spans, last) ->
+              let attr_span = if c = '.' then `Class spans else `Id spans in
+              loop ~next_line s lines ~line (attr_span :: attr_spans)
+                ~start:(last+1)
+         end
+       | '}' ->
+          (* TODO for inline parsing: verify there is only whitespace after *)
+          Some (lines, line, List.rev attr_spans, next)
+       | c ->
+          match
+            attribute ~allow_curly:false ~next_line s lines ~line []
+              ~start:next
+          with
+          | None -> None
+          | Some (lines, line, spans, last, attr) ->
+             loop ~next_line s lines ~line (`Kv_attr attr :: attr_spans)
+               ~start:(last+1)
+  in
+  loop ~next_line s lines ~line [] ~start
+
+let ext_attributes s ~last ~start =
+  let line = { line_pos = Textloc.line_pos_none; first = start; last } in
+  let next_line () = None in
+  match md_attributes ~next_line s () ~line ~start with
+  | None -> Nomatch
+  | Some (_, _, spans, last) -> Ext_attributes (spans, last)
 
 let could_be_link_reference_definition s ~last ~start =
   (* https://spec.commonmark.org/current/#link-reference-definition *)

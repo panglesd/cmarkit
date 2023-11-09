@@ -51,13 +51,13 @@ let link_definition ~indent ppf ld =
 let link_reference ~indent:n ppf = function
 | `Ref (_, l, ref) ->
     label ~indent:n ppf l; cut ppf (); label_def ~indent:n ppf ref
-| `Inline (ld, m) ->
+| `Inline ((ld, _), m) ->
     pf ppf "%a%a" (loc "Inline" ~indent:n) m (link_definition ~indent:n) ld
 
 let rec inlines ~indent ppf = function
 | [] -> () | is -> cut ppf (); Format.pp_print_list (inline ~indent) ppf is
 
-and link kind ~indent:n ppf (l, m) =
+and link kind ~indent:n ppf ((l, _), m) =
   pf ppf "@[<v>%a@,%a@,%a@]"
     (loc kind ~indent:n) m
     (inline ~indent:(n + 2)) (Inline.Link.text l)
@@ -89,13 +89,13 @@ and inline ~indent:n ppf = function
     let i = Inline.Emphasis.inline e in
       pf ppf "@[<v>%a@,%a@]"
         (loc "Emphasis" ~indent:n) m (inline ~indent:(n + 2)) i
-| Inline.Image i ->
-    link "Image" ~indent:n ppf i
+| Inline.Image (i, m) ->
+    link "Image" ~indent:n ppf ((i, Attributes.empty), m)
 | Inline.Inlines (is, m) ->
     pf ppf "@[<v>%a%a@]"
       (loc "Inlines" ~indent:n) m (inlines ~indent:(n + 2)) is
-| Inline.Link l ->
-      link "Link" ~indent:n ppf l
+| Inline.Link (l, m) ->
+      link "Link" ~indent:n ppf ((l, Attributes.empty), m)
 | Inline.Raw_html (r, m) ->
     let line = tight_block_line "Raw HTML line" ~indent:(n + 2) in
     pf ppf "@[<v>%a@,%a@]"
@@ -152,16 +152,16 @@ let rec blocks ~indent ppf = function
 and block ~indent:n ppf = function
 | Block.Blank_line (_, m) ->
       loc "Blank line" ~indent:n ppf m
-| Block.Block_quote (bq, m) ->
+| Block.Block_quote ((bq, _), m) ->
     let b = Block.Block_quote.block bq in
     pf ppf "@[<v>%a@,%a@]"
         (loc "Block quote" ~indent:n) m (block ~indent:(n + 2)) b
 | Block.Blocks (bs, m) ->
     pf ppf "@[<v>%a%a@]"
       (loc "Blocks" ~indent:n) m (blocks ~indent:(n + 2)) bs
-| Block.Code_block (cb, m) ->
+| Block.Code_block ((cb, _), m) ->
     code_block ~indent:n "Code block" cb m ppf
-| Block.Heading (h, m) ->
+| Block.Heading ((h, _), m) ->
     let level = Block.Heading.level h in
     let heading = "Heading, level " ^ Int.to_string level in
     let setext_underline ppf h = match Block.Heading.layout h with
@@ -173,15 +173,15 @@ and block ~indent:n ppf = function
     pf ppf "@[<v>%a@,%a%a@]"
       (loc heading ~indent:n) m (inline ~indent:(n + 2)) i
       setext_underline h
-| Block.Html_block (lines, m) ->
+| Block.Html_block ((lines, _), m) ->
     pf ppf "@[<v>%a@,%a@]"
       (loc "HTML block" ~indent:n) m
       (Format.pp_print_list (block_line "HTML line" ~indent:(n + 2))) lines
-| Block.Link_reference_definition ((ld : Link_definition.t), m) ->
+| Block.Link_reference_definition (((ld : Link_definition.t), _), m) ->
     pf ppf "@[<v>%a%a@]"
       (loc "Link reference definition" ~indent:n) m
       (link_definition ~indent:(n + 2)) ld
-| Block.List (l, m) ->
+| Block.List ((l, _), m) ->
     let task_marker ppf i = match Block.List_item.ext_task_marker i with
     | None -> ()
     | Some (_, m) ->
@@ -198,15 +198,15 @@ and block ~indent:n ppf = function
     let items = Block.List'.items l in
     pf ppf "@[<v>%a@,%a@]"
       (loc list ~indent:n) m (Format.pp_print_list list_item) items
-| Block.Paragraph (p, m) ->
+| Block.Paragraph ((p, _), m) ->
     pf ppf "@[<v>%a@,%a@]"
       (loc "Paragraph" ~indent:n) m
       (inline ~indent:(n + 2)) (Block.Paragraph.inline p)
 | Block.Thematic_break (_, m) ->
     loc "Thematic break" ~indent:n ppf m
-| Block.Ext_math_block (cb, m) ->
+| Block.Ext_math_block ((cb, _), m) ->
     code_block ~indent:n "Math block" cb m ppf
-| Block.Ext_table (t, m) ->
+| Block.Ext_table ((t, _), m) ->
     let col ~indent:n ppf (i, _) = inline ~indent:n ppf i in
     let row ~indent:n ppf = function
     | (`Header is, m), _  ->
@@ -226,7 +226,7 @@ and block ~indent:n ppf = function
     pf ppf "@[<v>%a@,%a@]"
       (loc ~indent:n "Table") m
       (Format.pp_print_list (row ~indent:(n + 2))) (Block.Table.rows t)
-| Block.Ext_footnote_definition (fn, m) ->
+| Block.Ext_footnote_definition ((fn, _), m) ->
     let b = Block.Footnote.block fn in
     let l = Block.Footnote.label fn in
     pf ppf "@[<v>%a@,%a@,%a@]"
