@@ -287,21 +287,52 @@ let inline c = function
 
 (* Block rendering *)
 
-let block_quote c bq =
-  C.string c "<blockquote>\n";
-  C.block c (Block.Block_quote.block bq);
-  C.string c "</blockquote>\n"
+let add_attr c (key, value) = match value with
+  | Some value -> C.string c (" " ^ key ^ "=" ^ value);
+  | None -> C.string c (" " ^ key)
 
-let code_block c cb =
+let add_attrs c ?(include_id = true) attrs =
+  List.iter (add_attr c) (Attributes.get_all ~include_id attrs)
+
+let open_block ?(with_newline = true) c tag attrs =
+  C.string c "<";
+  C.string c tag;
+  add_attrs c attrs;
+  C.string c ">";
+  if with_newline then C.string c "\n"
+
+let close_block ?(with_newline = true) c tag =
+  C.string c "</";
+  C.string c tag;
+  C.string c ">";
+  if with_newline then C.string c "\n"
+
+let in_block c ?(with_newline = true) tag attrs f =
+  open_block ~with_newline c tag attrs;
+  f ();
+  close_block ~with_newline c tag
+
+let with_attrs c attrs f =
+  if Attributes.is_empty attrs then f() else in_block c "div" attrs f
+
+let block_quote c attrs bq =
+  in_block c "blockquote" attrs @@ fun () ->
+  C.block c (Block.Block_quote.block bq)
+
+let code_block c attrs cb =
   let i = Option.map fst (Block.Code_block.info_string cb) in
   let lang = Option.bind i Block.Code_block.language_of_info_string in
   let line (l, _) = html_escaped_string c l; C.byte c '\n' in
   match lang with
   | Some (lang, _env) when backend_blocks c && lang.[0] = '=' ->
       if lang = "=html" && not (safe c)
-      then block_lines c (Block.Code_block.code cb) else ()
+      then
+        in_block c "div" attrs @@ fun () ->
+        block_lines c (Block.Code_block.code cb)
+      else ()
   | _ ->
-      C.string c "<pre><code";
+      in_block c ~with_newline:false "pre" attrs @@ fun () ->
+      C.string c "<code";
       begin match lang with
       | None -> ()
       | Some (lang, _env) ->
@@ -310,14 +341,7 @@ let code_block c cb =
       end;
       C.byte c '>';
       List.iter line (Block.Code_block.code cb);
-      C.string c "</code></pre>\n"
-
-let add_attr c (key, value) = match value with
-  | Some value -> C.string c (" " ^ key ^ "=" ^ value);
-  | None -> C.string c (" " ^ key)
-
-let add_attrs c ?(include_id = true) attrs =
-  List.iter (add_attr c) (Attributes.get_all ~include_id attrs)
+      C.string c "</code>\n"
 
 let heading c attrs h =
   let level = string_of_int (Block.Heading.level h) in
@@ -335,8 +359,10 @@ let heading c attrs h =
   C.inline c (Block.Heading.inline h);
   C.string c "</h"; C.string c level; C.string c ">\n"
 
-let paragraph c p =
-  C.string c "<p>"; C.inline c (Block.Paragraph.inline p); C.string c "</p>\n"
+let paragraph c attrs p =
+  in_block c ~with_newline:false "p" attrs @@ fun () ->
+  C.inline c (Block.Paragraph.inline p);
+  C.string c "\n"
 
 let item_block ~tight c = function
 | Block.Blank_line _ -> ()
@@ -396,15 +422,16 @@ let html_block c lines =
   if safe c then (comment c "CommonMark HTML block omitted"; C.byte c '\n') else
   List.iter line lines
 
-let thematic_break c = C.string c "<hr>\n"
+let thematic_break c = open_block c "hr"
 
-let math_block c cb =
+let math_block c attrs cb =
   let line l = html_escaped_string c (Block_line.to_string l); C.byte c '\n' in
+  with_attrs c attrs @@ fun () ->
   C.string c "\\[\n";
   List.iter line (Block.Code_block.code cb);
   C.string c "\\]\n"
 
-let table c t =
+let table c attrs t =
   let start c align tag =
     C.byte c '<'; C.string c tag;
     match align with
@@ -444,21 +471,22 @@ let table c t =
   | ((`Sep align, _), _) :: rs -> rows c col_count ~align rs
   | [] -> ()
   in
+  with_attrs c attrs @@ fun () ->
   C.string c "<div role=\"region\"><table>\n";
   rows c (Block.Table.col_count t) ~align:[] (Block.Table.rows t);
   C.string c "</table></div>"
 
 let block c = function
-| Block.Block_quote ((bq, todo), _) -> block_quote c bq; true
+| Block.Block_quote ((bq, attrs), _) -> block_quote c attrs bq; true
 | Block.Blocks (bs, _) -> List.iter (C.block c) bs; true
-| Block.Code_block ((cb, todo), _) -> code_block c cb; true
+| Block.Code_block ((cb, attrs), _) -> code_block c attrs cb; true
 | Block.Heading ((h, attrs), _) -> heading c attrs h; true
 | Block.Html_block ((h, todo), _) -> html_block c h; true
 | Block.List ((l, todo), _) -> list c l; true
-| Block.Paragraph ((p, todo), _) -> paragraph c p; true
-| Block.Thematic_break (_, _) -> thematic_break c; true
-| Block.Ext_math_block ((cb, todo), _) -> math_block c cb; true
-| Block.Ext_table ((t, todo), _) -> table c t; true
+| Block.Paragraph ((p, attrs), _) -> paragraph c attrs p; true
+| Block.Thematic_break ((_, attrs), _) -> thematic_break c attrs; true
+| Block.Ext_math_block ((cb, attrs), _) -> math_block c attrs cb; true
+| Block.Ext_table ((t, attrs), _) -> table c attrs t; true
 | Block.Blank_line _
 | Block.Link_reference_definition _
 | Block.Ext_footnote_definition _ -> true
