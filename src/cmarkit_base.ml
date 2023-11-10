@@ -756,6 +756,7 @@ let attribute ~allow_curly ~next_line s lines ~line spans ~start =
   match attribute_name s ~last:line.last ~start with
   | None -> None
   | Some end_name ->
+      let name_span = {line with first = start ; last = end_name} in
       let spans = push_span ~line start end_name spans in
       let start = end_name + 1 in
       match first_non_blank_over_nl' ~next_line s lines ~line spans ~start with
@@ -763,7 +764,9 @@ let attribute ~allow_curly ~next_line s lines ~line spans ~start =
       | Some (lines', line', spans', last_blank) ->
           let nb = last_blank + 1 in
           if s.[nb] <> '='
-          then Some (lines, line, spans, end_name) (* no value *) else
+          then
+            Some (lines, line, spans, end_name, `Empty name_span) (* no value *)
+          else
           let spans' = push_span ~line nb nb spans' in
           let start = nb + 1 in
           match
@@ -772,8 +775,18 @@ let attribute ~allow_curly ~next_line s lines ~line spans ~start =
           with
           | None -> None
           | Some (lines, line, spans, last_blank) ->
-              let start = last_blank + 1 in
-              attribute_value ~allow_curly:true ~next_line s lines ~line spans ~start
+             let start = last_blank + 1 in
+             let empty_span = {}
+              match
+                attribute_value ~allow_curly:true ~next_line s lines ~line spans
+                  ~start
+              with
+              | None -> None
+              | Some (lines, line, spans, last_attr_value) ->
+                 let value_span : rev_spans = start, last_attr_value in
+                 Some
+                   (lines, line, spans, last_attr_value,
+                    `NonEmpty (name_span, value_span))
 
 let open_tag ~next_line s lines ~line ~start:tag_start = (* tag_start has < *)
   (* https://spec.commonmark.org/current/#open-tag *)
@@ -798,7 +811,7 @@ let open_tag ~next_line s lines ~line ~start:tag_start = (* tag_start has < *)
                 if next = start then None else
                 match attribute ~allow_curly:true ~next_line s lines ~line spans ~start:next with
                 | None -> None
-                | Some (lines, line, spans, last) ->
+                | Some (lines, line, spans, last, _) ->
                     loop ~next_line s lines ~line spans ~start:(last + 1)
       in
       let start = tag_end_name + 1 in
@@ -1026,6 +1039,15 @@ let link_label b ~next_line s lines ~line ~start =
 type html_block_end_cond =
   [ `End_str of string | `End_cond_1 | `End_blank | `End_blank_7 ]
 
+(* https://html.spec.whatwg.org/multipage/syntax.html#attributes-2 *)
+type kv_attr = [
+  | `Empty of line_span
+  | `NonEmpty of rev_spans * rev_spans
+]
+
+type attributes =
+  [`Class of rev_spans | `Id of rev_spans | `Kv_attr of rev_spans]
+
 type line_type =
 | Atx_heading_line of heading_level * byte_pos * first * last
 | Blank_line
@@ -1039,7 +1061,7 @@ type line_type =
 | Thematic_break_line of last
 | Ext_table_row of last
 | Ext_footnote_label of rev_spans * last * string
-| Ext_attributes of rev_spans list * last
+| Ext_attributes of attributes list * last
 | Nomatch
 
 let thematic_break s ~last ~start =
@@ -1312,20 +1334,28 @@ let md_attributes ~next_line s lines ~line ~start:attr_start =
     | Some (lines, line, spans, last_blank) ->
        let next = last_blank + 1 in
        match s.[next] with
-       | '.' | '#' -> begin
-           match unquoted_attribute_value ~allow_curly:false ~next_line s lines ~line spans ~start:next with
+       | ('.' | '#') as c -> begin
+           match
+             unquoted_attribute_value ~allow_curly:false ~next_line s lines
+               ~line spans ~start:next
+           with
            | None -> None
            | Some (lines, line, spans, last) ->
+              let spans = if c = '.' then `Class spans else `Id spans in
               loop ~next_line s lines ~line (spans :: attr_spans) ~start
          end
-       | '}' -> (* TODO for inline parsing: verify there is only whitespace after *)
+       | '}' ->
+          (* TODO for inline parsing: verify there is only whitespace after *)
           Some (lines, line, List.rev attr_spans, next)
        | _ ->
           if next = start then None else
-          match attribute ~allow_curly:false ~next_line s lines ~line [] ~start:next with
+          match
+            attribute ~allow_curly:false ~next_line s lines ~line []
+              ~start:next
+          with
           | None -> None
-          | Some (lines, line, spans, last) ->
-             loop ~next_line s lines ~line (spans :: attr_spans) ~start
+          | Some (lines, line, spans, last, attr) ->
+             loop ~next_line s lines ~line (`Kv_attr attr :: attr_spans) ~start
   in
   loop ~next_line s lines ~line [] ~start
 

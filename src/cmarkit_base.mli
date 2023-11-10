@@ -298,6 +298,9 @@ type html_block_end_cond =
   [ `End_str of string | `End_cond_1 | `End_blank | `End_blank_7 ]
 (** The type for HTML block end conditions. *)
 
+type attributes =
+  [`Class of rev_spans | `Id of rev_spans | `Kv_attr of rev_spans]
+
 type line_type =
 | Atx_heading_line of heading_level * byte_pos (* after # *) * first * last
 | Blank_line
@@ -311,7 +314,7 @@ type line_type =
 | Thematic_break_line of last
 | Ext_table_row of last
 | Ext_footnote_label of rev_spans * last * string
-| Ext_attributes of rev_spans list * last
+| Ext_attributes of attributes list * last
 | Nomatch (* built-in [None] to avoid option allocs *)
 
 val thematic_break : string -> last:byte_pos -> start:byte_pos -> line_type
