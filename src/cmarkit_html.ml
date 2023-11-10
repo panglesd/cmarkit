@@ -324,7 +324,7 @@ let heading c attrs h =
   C.string c "<h"; C.string c level;
   add_attrs c ~include_id:false attrs;
   begin match Block.Heading.id h with
-  | None -> ()
+  | None -> C.byte c '>';
   | Some (`Auto id | `Id id) ->
       let id = unique_id c id in
       let id = match Cmarkit.Attributes.id attrs with None -> id | Some (id, _) -> id in
