@@ -778,7 +778,7 @@ let attribute ~allow_curly ~next_line s lines ~line spans ~start =
              let start = last_blank + 1 in
              let empty_spans = [] in
               match
-                attribute_value ~allow_curly:true ~next_line s lines ~line
+                attribute_value ~allow_curly ~next_line s lines ~line
                   empty_spans ~start
               with
               | None -> None
@@ -1339,25 +1339,27 @@ let md_attributes ~next_line s lines ~line ~start:attr_start =
        | ('.' | '#') as c -> begin
            match
              unquoted_attribute_value ~allow_curly:false ~next_line s lines
-               ~line spans ~start:next
+               ~line [] ~start:(next+1)
            with
            | None -> None
            | Some (lines, line, spans, last) ->
-              let spans = if c = '.' then `Class spans else `Id spans in
-              loop ~next_line s lines ~line (spans :: attr_spans) ~start
+              let attr_span = if c = '.' then `Class spans else `Id spans in
+              loop ~next_line s lines ~line (attr_span :: attr_spans)
+                ~start:(last+1)
          end
        | '}' ->
           (* TODO for inline parsing: verify there is only whitespace after *)
           Some (lines, line, List.rev attr_spans, next)
-       | _ ->
-          if next = start then None else
+       | c ->
+          if next = start then (Format.printf "Failed : %c here\n%!" c  ;None) else
           match
             attribute ~allow_curly:false ~next_line s lines ~line []
               ~start:next
           with
           | None -> None
           | Some (lines, line, spans, last, attr) ->
-             loop ~next_line s lines ~line (`Kv_attr attr :: attr_spans) ~start
+             loop ~next_line s lines ~line (`Kv_attr attr :: attr_spans)
+               ~start:(last+1)
   in
   loop ~next_line s lines ~line [] ~start
 

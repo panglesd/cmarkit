@@ -312,13 +312,22 @@ let code_block c cb =
       List.iter line (Block.Code_block.code cb);
       C.string c "</code></pre>\n"
 
-let heading c h =
+let add_attr c (key, value) = match value with
+  | Some value -> C.string c (" " ^ key ^ "=" ^ value);
+  | None -> C.string c (" " ^ key)
+
+let add_attrs c ?(include_id = true) attrs =
+  List.iter (add_attr c) (Attributes.get_all ~include_id attrs)
+
+let heading c attrs h =
   let level = string_of_int (Block.Heading.level h) in
   C.string c "<h"; C.string c level;
+  add_attrs c ~include_id:false attrs;
   begin match Block.Heading.id h with
-  | None -> C.byte c '>';
+  | None -> ()
   | Some (`Auto id | `Id id) ->
       let id = unique_id c id in
+      let id = match Cmarkit.Attributes.id attrs with None -> id | Some (id, _) -> id in
       C.string c " id=\""; C.string c id;
       C.string c "\"><a class=\"anchor\" aria-hidden=\"true\" href=\"#";
       C.string c id; C.string c "\"></a>";
@@ -443,7 +452,7 @@ let block c = function
 | Block.Block_quote ((bq, todo), _) -> block_quote c bq; true
 | Block.Blocks (bs, _) -> List.iter (C.block c) bs; true
 | Block.Code_block ((cb, todo), _) -> code_block c cb; true
-| Block.Heading ((h, todo), _) -> heading c h; true
+| Block.Heading ((h, attrs), _) -> heading c attrs h; true
 | Block.Html_block ((h, todo), _) -> html_block c h; true
 | Block.List ((l, todo), _) -> list c l; true
 | Block.Paragraph ((p, todo), _) -> paragraph c p; true

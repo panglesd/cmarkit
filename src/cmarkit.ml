@@ -89,6 +89,23 @@ module Attributes = struct
 
   let find key t =
     List.find_opt (function ((k, _), _) -> String.equal k key) t.kv_attributes
+
+  let get_all ?(include_id = true) t =
+    let id =
+      match t.id with Some (id, _) when include_id -> ["id", Some id] | _ -> []
+    in
+    let class' =
+      match t.class' with
+      | [] -> []
+      | x ->
+         let classes = x |> List.map fst |> String.concat " " in
+         [ "class", Some ("\"" ^ classes ^ "\"") ]
+    in
+    id @ class' @
+      List.map (function
+          | ((k, _), Some (v, _)) -> (k, Some v)
+          | ((k,_), None) -> (k, None))
+        t.kv_attributes
 end
 
 type 'a attributed = 'a * Attributes.t
@@ -2147,6 +2164,7 @@ module Block_struct = struct
         attributed
   | Ext_footnote of
       (Layout.indent * (Label.t * Label.t option) * t list) attributed
+  | Ext_attributes of Attributes.t
 
   and list_item =
    { before_marker : Layout.indent;
@@ -2425,7 +2443,7 @@ module Block_struct = struct
   | Ext_footnote ((i, l, blocks), attrs) :: bs ->
      close_footnote p i l blocks attrs bs
   | (Thematic_break _ | Heading _ | Blank_line _ | Linkref_def _
-    | Ext_table _ ) :: _ | [] as bs -> bs
+    | Ext_table _ | Ext_attributes _ ) :: _ | [] as bs -> bs
 
   (* Adding lines to blocks *)
 
@@ -2489,10 +2507,10 @@ module Block_struct = struct
           if r <> Nomatch then r else
           Paragraph_line
       | '{' when p.exts ->
-          let line_pos = p.current_line_pos in
+          (* let line_pos = p.current_line_pos in *)
           let r = Match.ext_attributes p.i ~last ~start in
           if r <> Nomatch then r else
-          Paragraph_line
+            Paragraph_line
       | _ ->
           Paragraph_line
     end
@@ -2544,7 +2562,8 @@ module Block_struct = struct
           Attributes.add key value attrs
      in
      let attrs = List.fold_right add_attribute new_attrs attrs in
-     add_open_blocks p attrs bs
+     Ext_attributes attrs :: bs
+
   | Setext_underline_line _ | Nomatch ->
       (* This function should be called with a line type that comes out
          of match_line_type ~no_setext:true *)
@@ -2814,16 +2833,6 @@ module Block_struct = struct
         add_open_blocks_with_line_class p ~indent ~indent_start
           Attributes.empty bs ltype
 
-  (* and try_add_to_attributes p attr attrs bs  = *)
-  (*   let indent_start = p.current_char and indent = current_indent p in *)
-  (*   match match_line_type ~indent ~no_setext:true p with *)
-  (*   | Ext_attributes new_attrs -> *)
-  (*       let attrs = add_attrs new_attrs attr in *)
-  (*       (Ext_attributes attrs, meta) :: bs *)
-  (*   | ltype -> *)
-  (*       let meta = (Ext_table (ind, rows), meta) :: bs in *)
-  (*       add_open_blocks_with_line_class p ~indent ~indent_start None bs ltype *)
-
   and add_line p = function
   | Paragraph (par, attrs) :: bs -> try_add_to_paragraph p par attrs bs
   | ((Thematic_break _ | Heading _ | Blank_line _ | Linkref_def _) :: _)
@@ -2839,6 +2848,7 @@ module Block_struct = struct
   | Ext_table ((ind, rows), attrs) :: bs -> try_add_to_table p ind rows attrs bs
   | Ext_footnote ((i, l, blocks), attrs) :: bs ->
      try_add_to_footnote p i l blocks attrs bs
+  | Ext_attributes attrs :: bs -> add_open_blocks p attrs bs
 
   (* Parsing *)
 
@@ -3128,6 +3138,8 @@ and block_struct_to_block p = function
 | Ext_table ((i, rows), attrs) -> block_struct_to_table p i rows attrs
 | Ext_footnote ((i, labels, bs), attrs) ->
     block_struct_to_footnote_definition p i labels bs attrs
+| Ext_attributes _ ->
+    assert false (* should already have been combined *)
 
 let block_struct_to_doc p (doc, meta) =
   match List.rev_map (block_struct_to_block p) doc with

@@ -316,6 +316,9 @@ module Attributes : sig
 
   val find : string -> t -> (key node * value node option) option
   (** [find k m] the value of [k] in [m], if any. *)
+
+  val get_all : ?include_id:bool -> t -> (key * value option) list
+  (** TODO. *)
 end
 
 type 'a attributed = 'a * Attributes.t
