@@ -360,8 +360,8 @@ let heading c attrs h =
   C.string c "</h"; C.string c level; C.string c ">\n"
 
 let paragraph c attrs p =
-  in_block c ~with_newline:false "p" attrs @@ fun () ->
-  C.inline c (Block.Paragraph.inline p);
+  in_block c ~with_newline:false "p" attrs (fun () ->
+  C.inline c (Block.Paragraph.inline p));
   C.string c "\n"
 
 let item_block ~tight c = function
