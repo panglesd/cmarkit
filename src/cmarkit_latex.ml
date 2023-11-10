@@ -142,7 +142,7 @@ let emphasis c e =
   C.string c "\\emph{"; C.inline c (Inline.Emphasis.inline e); C.byte c '}'
 
 let link c l = match Inline.Link.reference_definition (C.get_defs c) l with
-| Some (Link_definition.Def (ld, _)) ->
+| Some (Link_definition.Def ((ld, _), _)) ->
     let d = match Link_definition.dest ld with None -> "" | Some (u, _) -> u in
     let dlen = String.length d in
     begin match dlen > 0 && d.[0] = '#' with
@@ -158,7 +158,7 @@ let link c l = match Inline.Link.reference_definition (C.get_defs c) l with
         C.string c "}{";
         C.inline c (Inline.Link.text l); C.byte c '}'
     end
-| Some (Block.Footnote.Def (fn, _)) ->
+| Some (Block.Footnote.Def ((fn, _), _)) ->
     let key = Label.key (Option.get (Inline.Link.referenced_label l)) in
     let l, new' = footnote_label c key in
     begin match new' with
@@ -173,7 +173,7 @@ let link c l = match Inline.Link.reference_definition (C.get_defs c) l with
 | Some _ -> C.inline c (Inline.Link.text l); comment_unknown_def_type c l
 
 let image c i = match Inline.Link.reference_definition (C.get_defs c) i with
-| Some (Link_definition.Def (ld, _)) ->
+| Some (Link_definition.Def ((ld, _), _)) ->
     let d = match Link_definition.dest ld with
     | None -> "" | Some (u, _) -> u
     in
@@ -378,16 +378,16 @@ let table c t =
   newline c; C.string c "\\bigskip"; newline c
 
 let block c = function
-| Block.Block_quote (bq, _) -> block_quote c bq; true
+| Block.Block_quote ((bq, _), _) -> block_quote c bq; true
 | Block.Blocks (bs, _) -> List.iter (C.block c) bs; true
-| Block.Code_block (cb, _) -> code_block c cb; true
-| Block.Heading (h, _) -> heading c h; true
+| Block.Code_block ((cb, _), _) -> code_block c cb; true
+| Block.Heading ((h, _), _) -> heading c h; true
 | Block.Html_block (html, _) -> html_block c html; true
-| Block.List (l, _) -> list c l; true
-| Block.Paragraph (p, _) -> paragraph c p; true
+| Block.List ((l, _), _) -> list c l; true
+| Block.Paragraph ((p, _), _) -> paragraph c p; true
 | Block.Thematic_break _ -> thematic_break c; true
-| Block.Ext_math_block (cb, _)-> math_block c cb; true
-| Block.Ext_table (t, _)-> table c t; true
+| Block.Ext_math_block ((cb, _), _)-> math_block c cb; true
+| Block.Ext_table ((t, _), _)-> table c t; true
 | Block.Blank_line _ -> true
 | Block.Link_reference_definition _
 | Block.Ext_footnote_definition _ -> true;

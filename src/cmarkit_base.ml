@@ -216,7 +216,7 @@ type line_span =
     last : Textloc.byte_pos }
 
 type line_start = Textloc.byte_pos
-type rev_spans = (line_start * line_span) list
+type rev_spans = (line_start (* kept for layout *) * line_span) list
 type 'a next_line = 'a -> ('a * line_span) option
 
 (* Node meta data *)
@@ -765,7 +765,7 @@ let attribute ~allow_curly ~next_line s lines ~line spans ~start =
           let nb = last_blank + 1 in
           if s.[nb] <> '='
           then
-            Some (lines, line, spans, end_name, `Empty name_span) (* no value *)
+            Some (lines, line, spans, end_name, (name_span, None)) (* no value *)
           else
           let spans' = push_span ~line nb nb spans' in
           let start = nb + 1 in
@@ -776,17 +776,22 @@ let attribute ~allow_curly ~next_line s lines ~line spans ~start =
           | None -> None
           | Some (lines, line, spans, last_blank) ->
              let start = last_blank + 1 in
-             let empty_span = {}
+             let empty_spans = [] in
               match
-                attribute_value ~allow_curly:true ~next_line s lines ~line spans
-                  ~start
+                attribute_value ~allow_curly:true ~next_line s lines ~line
+                  empty_spans ~start
               with
               | None -> None
-              | Some (lines, line, spans, last_attr_value) ->
-                 let value_span : rev_spans = start, last_attr_value in
+              | Some (lines, line, value_span, last_attr_value) ->
+                 let spans =
+                   List.fold_right
+                     (fun (_, line) spans ->
+                       push_span ~line line.first line.last spans)
+                     spans value_span
+                 in
                  Some
                    (lines, line, spans, last_attr_value,
-                    `NonEmpty (name_span, value_span))
+                    (name_span, Some value_span))
 
 let open_tag ~next_line s lines ~line ~start:tag_start = (* tag_start has < *)
   (* https://spec.commonmark.org/current/#open-tag *)
@@ -1039,14 +1044,11 @@ let link_label b ~next_line s lines ~line ~start =
 type html_block_end_cond =
   [ `End_str of string | `End_cond_1 | `End_blank | `End_blank_7 ]
 
-(* https://html.spec.whatwg.org/multipage/syntax.html#attributes-2 *)
-type kv_attr = [
-  | `Empty of line_span
-  | `NonEmpty of rev_spans * rev_spans
+type attributes = [
+  | `Class of rev_spans
+  | `Id of rev_spans
+  | `Kv_attr of  line_span * rev_spans option
 ]
-
-type attributes =
-  [`Class of rev_spans | `Id of rev_spans | `Kv_attr of rev_spans]
 
 type line_type =
 | Atx_heading_line of heading_level * byte_pos * first * last

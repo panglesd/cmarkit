@@ -189,13 +189,19 @@ let link_dest_and_title c ld =
 
 let image ?(close = " >") c i =
   match Inline.Link.reference_definition (C.get_defs c) i with
-  | Some (Link_definition.Def (ld, _)) ->
+  | Some (Link_definition.Def ((ld, attributes), _)) ->
       let plain_text c i =
         let lines = Inline.to_plain_text ~break_on_soft:false i in
         String.concat "\n" (List.map (String.concat "") lines)
       in
       let link, title = link_dest_and_title c ld in
       C.string c "<img src=\""; pct_encoded_string c link;
+      let id = Attributes.id attributes in
+      (match id with
+         None -> ()
+       | Some (id, _) ->
+          C.string c "\" id=\"";
+          html_escaped_string c id);
       C.string c "\" alt=\"";
       html_escaped_string c (plain_text c (Inline.Link.text i));
       C.byte c '\"';
@@ -225,12 +231,18 @@ let link_footnote c l fn =
   end
 
 let link c l = match Inline.Link.reference_definition (C.get_defs c) l with
-| Some (Link_definition.Def (ld, _)) ->
+| Some (Link_definition.Def ((ld, attributes), _)) ->
     let link, title = link_dest_and_title c ld in
     C.string c "<a href=\""; pct_encoded_string c link;
+    let id = Attributes.id attributes in
+    (match id with
+       None -> ()
+     | Some (id, _) ->
+        C.string c "\" id=\"";
+        html_escaped_string c id);
     if title <> "" then (C.string c "\" title=\""; html_escaped_string c title);
     C.string c "\">"; C.inline c (Inline.Link.text l); C.string c "</a>"
-| Some (Block.Footnote.Def (fn, _)) -> link_footnote c l fn
+| Some (Block.Footnote.Def ((fn, todo), _)) -> link_footnote c l fn
 | None -> C.inline c (Inline.Link.text l); comment_undefined_label c l
 | Some _ -> C.inline c (Inline.Link.text l); comment_unknown_def_type c l
 
@@ -319,11 +331,11 @@ let paragraph c p =
 
 let item_block ~tight c = function
 | Block.Blank_line _ -> ()
-| Block.Paragraph (p, _) when tight -> C.inline c (Block.Paragraph.inline p)
+| Block.Paragraph ((p, todo), _) when tight -> C.inline c (Block.Paragraph.inline p)
 | Block.Blocks (bs, _) ->
     let rec loop c add_nl = function
     | Block.Blank_line _ :: bs -> loop c add_nl bs
-    | Block.Paragraph (p,_) :: bs when tight ->
+    | Block.Paragraph ((p, todo),_) :: bs when tight ->
         C.inline c (Block.Paragraph.inline p); loop c true bs
     | b :: bs -> (if add_nl then C.byte c '\n'); C.block c b; loop c false bs
     | [] -> ()
@@ -428,16 +440,16 @@ let table c t =
   C.string c "</table></div>"
 
 let block c = function
-| Block.Block_quote (bq, _) -> block_quote c bq; true
+| Block.Block_quote ((bq, todo), _) -> block_quote c bq; true
 | Block.Blocks (bs, _) -> List.iter (C.block c) bs; true
-| Block.Code_block (cb, _) -> code_block c cb; true
-| Block.Heading (h, _) -> heading c h; true
-| Block.Html_block (h, _) -> html_block c h; true
-| Block.List (l, _) -> list c l; true
-| Block.Paragraph (p, _) -> paragraph c p; true
+| Block.Code_block ((cb, todo), _) -> code_block c cb; true
+| Block.Heading ((h, todo), _) -> heading c h; true
+| Block.Html_block ((h, todo), _) -> html_block c h; true
+| Block.List ((l, todo), _) -> list c l; true
+| Block.Paragraph ((p, todo), _) -> paragraph c p; true
 | Block.Thematic_break (_, _) -> thematic_break c; true
-| Block.Ext_math_block (cb, _) -> math_block c cb; true
-| Block.Ext_table (t, _) -> table c t; true
+| Block.Ext_math_block ((cb, todo), _) -> math_block c cb; true
+| Block.Ext_table ((t, todo), _) -> table c t; true
 | Block.Blank_line _
 | Block.Link_reference_definition _
 | Block.Ext_footnote_definition _ -> true

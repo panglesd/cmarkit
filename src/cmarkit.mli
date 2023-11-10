@@ -284,7 +284,8 @@ module Attributes : sig
 
   val is_empty : t -> bool
 
-  val make : ?kv_attributes:(key * value node) list -> ?id:string option -> ?class':string node list -> unit -> t
+  val make : ?kv_attributes:(key node * value node option) list ->
+?id:string node option -> ?class':string node list -> unit -> t
   (** [make ~attributes] is TODO. *)
 
   (** {1 Classes}) *)
@@ -310,13 +311,10 @@ module Attributes : sig
   val mem : key -> t -> bool
   (** [mem k m] is [true] iff [k] is bound in [m]. *)
 
-  val add : key -> value node -> t -> t
+  val add : key node -> value node option -> t -> t
   (** [add k v m] is [m] with key [k] bound to [v]. *)
 
-  val remove : key -> t -> t
-  (** [remove k m] is [m] with key [k] unbound in [v]. *)
-
-  val find : key -> t -> value node option
+  val find : string -> t -> (key node * value node option) option
   (** [find k m] the value of [k] in [m], if any. *)
 end
 
@@ -642,7 +640,7 @@ module Link_definition : sig
 
   (** {1:labeldef As label definitions} *)
 
-  type Label.def += Def of t node (** *)
+  type Label.def += Def of t attributed node (** *)
   (** A label definition for links. *)
 end
 
@@ -797,7 +795,7 @@ module Inline : sig
     (** The type for reference link layouts. *)
 
     type reference =
-    [ `Inline of Link_definition.t node
+    [ `Inline of Link_definition.t attributed node
        (** {{:https://spec.commonmark.org/0.30/#inline-link}Inline link} *)
     | `Ref of reference_layout * Label.t * Label.t
        (** {{:https://spec.commonmark.org/0.30/#reference-link}Reference
@@ -1249,18 +1247,18 @@ module Block : sig
   end
 
   type t +=
-  | Blank_line of Blank_line.t node
-  | Block_quote of Block_quote.t node
+  | Blank_line of Blank_line.t attributed node
+  | Block_quote of Block_quote.t attributed node
   | Blocks of t list node (** Splicing *)
-  | Code_block of Code_block.t node
-  | Heading of Heading.t node
-  | Html_block of Html_block.t node
-  | Link_reference_definition of Link_definition.t node
+  | Code_block of Code_block.t attributed node
+  | Heading of Heading.t attributed node
+  | Html_block of Html_block.t attributed node
+  | Link_reference_definition of Link_definition.t attributed node
     (** {{:https://spec.commonmark.org/0.30/#link-reference-definitions}
         Link reference definitions}, kept for layout *)
-  | List of List'.t node
-  | Paragraph of Paragraph.t node
-  | Thematic_break of Thematic_break.t node
+  | List of List'.t attributed node
+  | Paragraph of Paragraph.t attributed node
+  | Thematic_break of Thematic_break.t attributed node
     (** {{:https://spec.commonmark.org/0.30/#paragraphs}Thematic break} *)
   (** The CommonMark {{:https://spec.commonmark.org/0.30/#leaf-blocks}leaf}
       and {{:https://spec.commonmark.org/0.30/#container-blocks}container}
@@ -1344,15 +1342,15 @@ module Block : sig
 
     (** {1:labeldef As label definitions} *)
 
-    type Label.def += Def of t node (** *)
+    type Label.def += Def of t attributed node (** *)
     (** A label definition for footnotes. *)
   end
 
   type t +=
-  | Ext_math_block of Code_block.t node
+  | Ext_math_block of Code_block.t attributed node
     (** {{!Cmarkit.ext_math_display}display math}*)
-  | Ext_table of Table.t node (** *)
-  | Ext_footnote_definition of Footnote.t node (** *)
+  | Ext_table of Table.t attributed node (** *)
+  | Ext_footnote_definition of Footnote.t attributed node (** *)
   (** The supported block extensions. These blocks are only parsed when
       {!Doc.of_string} is called with [strict:false]. *)
 

@@ -298,8 +298,11 @@ type html_block_end_cond =
   [ `End_str of string | `End_cond_1 | `End_blank | `End_blank_7 ]
 (** The type for HTML block end conditions. *)
 
-type attributes =
-  [`Class of rev_spans | `Id of rev_spans | `Kv_attr of rev_spans]
+type attributes = [
+  | `Class of rev_spans
+  | `Id of rev_spans
+  | `Kv_attr of  line_span * rev_spans option
+]
 
 type line_type =
 | Atx_heading_line of heading_level * byte_pos (* after # *) * first * last

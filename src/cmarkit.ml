@@ -31,7 +31,7 @@ module Attributes = struct
   type t = {
       class' : string node list;
       id : string node option;
-      kv_attributes : (key * value node) list
+      kv_attributes : (key node * value node option) list
     }
   (** The type for abstract syntax tree node attributes. *)
 
@@ -70,19 +70,25 @@ module Attributes = struct
 
   (** {1 Key-value attributes}) *)
 
-  let mem key t = List.mem_assoc key t.kv_attributes
+  let mem key t =
+    List.exists (function ((k, _), _) -> String.equal k key) t.kv_attributes
 
-  let add key value t =
-    let kv_attributes = (key, value) :: t.kv_attributes in
-    { t with kv_attributes }
+  let add (key, meta) value t =
+    match key, value with
+      "id", Some value -> set_id t value
+    | "class", Some value -> add_class t value
+    | _ ->
+       let kv_attributes = ((key, meta), value) :: t.kv_attributes in
+       { t with kv_attributes }
 
-  let remove key t =
-    { t with
-      kv_attributes =
-        List.filter(fun (key', _) -> compare key key' <> 0) t.kv_attributes
-    }
+  (* let remove key t = *)
+  (*   { t with *)
+  (*     kv_attributes = *)
+  (*       List.filter(fun (key', _) -> compare key key' <> 0) t.kv_attributes *)
+  (*   } *)
 
-  let find key t = List.assoc_opt key t.kv_attributes
+  let find key t =
+    List.find_opt (function ((k, _), _) -> String.equal k key) t.kv_attributes
 end
 
 type 'a attributed = 'a * Attributes.t
@@ -1473,6 +1479,19 @@ module Inline_struct = struct
     let text = tight_block_lines p ~rev_spans in
     { Label.meta; key; text }
 
+  let attr_of_rev_spans p rev_spans =
+    let meta =
+      if p.nolocs || rev_spans = [] then Meta.none else
+      let first = snd (List.hd (List.rev rev_spans)) in
+      let last = snd (List.hd rev_spans) in
+      meta_of_spans p ~first ~last
+    in
+    let text =
+      let tight = tight_block_lines p ~rev_spans in
+      String.concat "\n" (List.map Block_line.tight_to_string tight)
+    in
+    text, meta
+
   let try_full_reflink_remainder p toks line ~image ~start (* is label's [ *) =
     (* https://spec.commonmark.org/current/#full-reference-link *)
     match Match.link_label p.buf ~next_line p.i toks ~line ~start with
@@ -2128,7 +2147,6 @@ module Block_struct = struct
         attributed
   | Ext_footnote of
       (Layout.indent * (Label.t * Label.t option) * t list) attributed
-  | Ext_attributes of Attributes.t
 
   and list_item =
    { before_marker : Layout.indent;
@@ -2406,7 +2424,6 @@ module Block_struct = struct
   | Html_block (html, attrs) :: bs -> end_doc_close_html p html attrs bs
   | Ext_footnote ((i, l, blocks), attrs) :: bs ->
      close_footnote p i l blocks attrs bs
-  | Ext_attributes _ :: _ -> _
   | (Thematic_break _ | Heading _ | Blank_line _ | Linkref_def _
     | Ext_table _ ) :: _ | [] as bs -> bs
 
@@ -2510,8 +2527,24 @@ module Block_struct = struct
   | Ext_table_row last -> table p ~indent ~last attrs :: bs
   | Ext_footnote_label (rev_spans, last, key) ->
      footnote p ~indent ~last rev_spans key attrs :: bs
-  | Ext_attributes (rev_span_list, last) ->
-     add_open_blocks p (merge_attributes attrs rev_span_list) bs
+  | Ext_attributes (new_attrs, last) ->
+     let add_attribute new_attr attrs = match new_attr with
+       | `Class rev_spans ->
+          let new_class = Inline_struct.attr_of_rev_spans p rev_spans in
+          Attributes.add_class attrs new_class
+       | `Id rev_spans ->
+          let new_id = Inline_struct.attr_of_rev_spans p rev_spans in
+          Attributes.set_id attrs new_id
+       | `Kv_attr (key, value) ->
+          let key = clean_raw_span p key in
+          let value = match value with
+              None -> None
+            | Some value -> Some (Inline_struct.attr_of_rev_spans p value)
+          in
+          Attributes.add key value attrs
+     in
+     let attrs = List.fold_right add_attribute new_attrs attrs in
+     add_open_blocks p attrs bs
   | Setext_underline_line _ | Nomatch ->
       (* This function should be called with a line type that comes out
          of match_line_type ~no_setext:true *)
@@ -2806,7 +2839,6 @@ module Block_struct = struct
   | Ext_table ((ind, rows), attrs) :: bs -> try_add_to_table p ind rows attrs bs
   | Ext_footnote ((i, l, blocks), attrs) :: bs ->
      try_add_to_footnote p i l blocks attrs bs
-  | Ext_attributes attrs :: bs -> try_add_to_attributes p attr attrs bs
 
   (* Parsing *)
 
@@ -3094,9 +3126,8 @@ and block_struct_to_block p = function
 | Linkref_def ((r, attrs), meta) ->
    Block.Link_reference_definition ((r, attrs), meta)
 | Ext_table ((i, rows), attrs) -> block_struct_to_table p i rows attrs
- | Ext_footnote ((i, labels, bs), attrs) ->
+| Ext_footnote ((i, labels, bs), attrs) ->
     block_struct_to_footnote_definition p i labels bs attrs
- | Ext_attributes _ -> assert false
 
 let block_struct_to_doc p (doc, meta) =
   match List.rev_map (block_struct_to_block p) doc with
