@@ -783,12 +783,26 @@ let attribute ~allow_curly ~next_line s lines ~line spans ~start =
               with
               | None -> None
               | Some (lines, line, value_span, last_attr_value) ->
+                 (* let print_spans s spans = *)
+                 (*   let print_line (i, {line_pos ; first ; last}) = *)
+                 (*     Format.printf "  line(_start): %d\n" i; *)
+                 (*     Format.printf "  line_pos: line_num: %d byte_pos: %d\n" (fst line_pos) (snd line_pos); *)
+                 (*     Format.printf "  first: %d\n" first; *)
+                 (*     Format.printf "  last: %d\n" last; *)
+                 (*     Format.printf "\n" *)
+                 (*   in *)
+                 (*   Format.printf "Printing %s:\n" s; *)
+                 (*   List.iter print_line spans *)
+                 (* in *)
+                 (* print_spans "value_span" value_span ; *)
+                 (* print_spans "spans" spans ; *)
                  let spans =
                    List.fold_right
                      (fun (_, line) spans ->
                        push_span ~line line.first line.last spans)
-                     spans value_span
+                     value_span spans
                  in
+                 (* print_spans "combined" spans ; *)
                  Some
                    (lines, line, spans, last_attr_value,
                     (name_span, Some value_span))
@@ -1351,7 +1365,7 @@ let md_attributes ~next_line s lines ~line ~start:attr_start =
           (* TODO for inline parsing: verify there is only whitespace after *)
           Some (lines, line, List.rev attr_spans, next)
        | c ->
-          if next = start then (Format.printf "Failed : %c here\n%!" c  ;None) else
+          if next = start then None else
           match
             attribute ~allow_curly:false ~next_line s lines ~line []
               ~start:next
