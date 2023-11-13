@@ -331,7 +331,7 @@ let code_block c attrs cb =
         block_lines c (Block.Code_block.code cb)
       else ()
   | _ ->
-      in_block c ~with_newline:false "pre" attrs @@ fun () ->
+      (in_block c ~with_newline:false "pre" attrs @@ fun () ->
       C.string c "<code";
       begin match lang with
       | None -> ()
@@ -341,7 +341,8 @@ let code_block c attrs cb =
       end;
       C.byte c '>';
       List.iter line (Block.Code_block.code cb);
-      C.string c "</code>\n"
+      C.string c "</code>");
+      C.byte c '\n'
 
 let heading c attrs h =
   let level = string_of_int (Block.Heading.level h) in
