@@ -321,7 +321,7 @@ module Attributes : sig
   (** TODO. *)
 end
 
-type 'a attributed = 'a * Attributes.t
+type 'a attributed = 'a * Attributes.t node
 
 (** Types for layout information.
 
@@ -1354,6 +1354,7 @@ module Block : sig
     (** {{!Cmarkit.ext_math_display}display math}*)
   | Ext_table of Table.t attributed node (** *)
   | Ext_footnote_definition of Footnote.t attributed node (** *)
+  | Ext_standalone_attributes of Attributes.t node (** *)
   (** The supported block extensions. These blocks are only parsed when
       {!Doc.of_string} is called with [strict:false]. *)
 

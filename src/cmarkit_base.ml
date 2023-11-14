@@ -1077,7 +1077,7 @@ type line_type =
 | Thematic_break_line of last
 | Ext_table_row of last
 | Ext_footnote_label of rev_spans * last * string
-| Ext_attributes of attributes list * last
+| Ext_attributes of attributes list * first * last
 | Nomatch
 
 let thematic_break s ~last ~start =
@@ -1384,7 +1384,7 @@ let ext_attributes s ~last ~start =
   | None -> Nomatch
   | Some (_, _, spans, attr_end) ->
       let next = first_non_blank s ~last ~start:(attr_end + 1) in
-      if next >= last then Ext_attributes (spans, attr_end) else Nomatch
+      if next >= last then Ext_attributes (spans, start, attr_end) else Nomatch
 
 let could_be_link_reference_definition s ~last ~start =
   (* https://spec.commonmark.org/current/#link-reference-definition *)

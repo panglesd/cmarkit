@@ -270,13 +270,37 @@ let inline c = function
 
 (* Block rendering *)
 
+let attributes c attrs =
+  let attrs = Cmarkit.Attributes.get_all ~include_id:true attrs in
+  if attrs = [] then () else
+    begin
+      newline c;
+      indent c;
+      let attrs =
+        List.concat_map
+          (function
+           | "id", Some v -> ["#"^v]
+           | "class", Some v -> String.split_on_char ' ' v |> List.map (fun x -> "."^x)
+           | k, Some v -> [k^"=\""^v^"\""]
+           | k, None -> [k]
+          ) attrs
+      in
+      let s = String.concat " " attrs in
+      C.string c "{";
+      C.string c s;
+      C.string c "}"
+    end
+
 let blank_line c l = newline c; indent c; C.string c l
 
-let block_quote c bq  =
+let block_quote c bq attrs =
+  attributes c attrs;
   push_indent c (`Q (Block.Block_quote.indent bq));
   C.block c (Block.Block_quote.block bq); pop_indent c
 
-let code_block c cb = match Block.Code_block.layout cb with
+let code_block c cb attrs =
+  attributes c attrs;
+ match Block.Code_block.layout cb with
 | `Indented ->
     newline c; push_indent c (`I 4); indent c;
     block_lines c (Block.Code_block.code cb);
@@ -298,7 +322,8 @@ let code_block c cb = match Block.Code_block.layout cb with
     | None -> () | Some close -> newline c; indent c; C.string c close);
     pop_indent c
 
-let heading c h =
+let heading c h attrs =
+  attributes c attrs;
   newline c; indent c;
   match (Block.Heading.layout h) with
   | `Atx { indent; after_opening; closing } ->
@@ -319,9 +344,11 @@ let heading c h =
       nchars c (fst l.underline_count) u;
       C.string c l.underline_blanks
 
-let html_block c h = newline c; indent c; block_lines c h
+let html_block c h attrs =
+  attributes c attrs; newline c; indent c; block_lines c h
 
-let link_reference_definition c ld =
+let link_reference_definition c ld attrs =
+  attributes c attrs;
   newline c; indent c; nchars c (Link_definition.layout ld).indent ' ';
   C.byte c '[';
   begin match Link_definition.label ld with
@@ -350,7 +377,9 @@ let ordered_item c sep num (i, _) =
   pop_indent c;
   num + 1
 
-let list c l = match Block.List'.type' l with
+let list c l attrs =
+  attributes c attrs;
+match Block.List'.type' l with
 | `Unordered marker ->
     let marker = match marker with '*' | '-' | '+' -> marker | _ -> '*' in
     let marker = String.make 1 marker in
@@ -360,19 +389,22 @@ let list c l = match Block.List'.type' l with
     let sep = String.make 1 sep in
     ignore (List.fold_left (ordered_item c sep) start (Block.List'.items l))
 
-let paragraph c p =
+let paragraph c p attrs =
+  attributes c attrs;
   newline c; indent c;
   nchars c (Block.Paragraph.leading_indent p) ' ';
   C.inline c (Block.Paragraph.inline p);
   C.string c (Block.Paragraph.trailing_blanks p)
 
-let thematic_break c t =
+let thematic_break c t attrs =
+  attributes c attrs;
   let ind = Block.Thematic_break.indent t in
   let break = Block.Thematic_break.layout t in
   let break = if break = "" then "---" else break in
   newline c; indent c; nchars c ind ' '; C.string c break
 
-let table c t =
+let table c t attrs =
+  attributes c attrs;
   let col c (i, (before, after)) =
     C.byte c '|'; C.string c before; C.inline c i; C.string c after
   in
@@ -398,26 +430,30 @@ let table c t =
   List.iter (row c) (Block.Table.rows t);
   pop_indent c
 
-let footnote c fn =
+let footnote c fn attrs =
+  attributes c attrs;
   push_indent c (`Fn (Block.Footnote.indent fn, Block.Footnote.label fn));
   C.block c (Block.Footnote.block fn);
   pop_indent c
 
+let standalone_attributes c attrs = attributes c attrs
+
 let block c = function
 | Block.Blank_line (l, _) -> blank_line c l; true
-| Block.Block_quote ((b, _), _) -> block_quote c b; true
+| Block.Block_quote ((b, (attrs, _)), _) -> block_quote c b attrs; true
 | Block.Blocks (bs, _) -> List.iter (C.block c) bs; true
-| Block.Code_block ((cb, _), _) -> code_block c cb; true
-| Block.Heading ((h, _), _) -> heading c h; true
-| Block.Html_block ((h, _), _) -> html_block c h; true
-| Block.Link_reference_definition ((ld, _), _) ->
-    link_reference_definition c ld; true
-| Block.List ((l, _), _) -> list c l; true
-| Block.Paragraph ((p, _), _) -> paragraph c p; true
-| Block.Thematic_break ((t, _), _) -> thematic_break c t; true
-| Block.Ext_math_block ((cb, _), _) -> code_block c cb; true
-| Block.Ext_table ((t, _), _) -> table c t; true
-| Block.Ext_footnote_definition ((t, _), _) -> footnote c t; true
+| Block.Code_block ((cb, (attrs, _)), _) -> code_block c cb attrs; true
+| Block.Heading ((h, (attrs, _)), _) -> heading c h attrs; true
+| Block.Html_block ((h, (attrs, _)), _) -> html_block c h attrs; true
+| Block.Link_reference_definition ((ld, (attrs, _)), _) ->
+    link_reference_definition c ld attrs; true
+| Block.List ((l, (attrs, _)), _) -> list c l attrs; true
+| Block.Paragraph ((p, (attrs, _)), _) -> paragraph c p attrs; true
+| Block.Thematic_break ((t, (attrs, _)), _) -> thematic_break c t attrs; true
+| Block.Ext_math_block ((cb, (attrs, _)), _) -> code_block c cb attrs; true
+| Block.Ext_table ((t, (attrs, _)), _) -> table c t attrs; true
+| Block.Ext_footnote_definition ((t, (attrs, _)), _) -> footnote c t attrs; true
+| Block.Ext_standalone_attributes (attrs, _) -> standalone_attributes c attrs; true
 | _ -> newline c; indent c; C.string c "<!-- Unknown Cmarkit block -->"; true
 
 (* Document rendering *)
