@@ -723,7 +723,7 @@ module Block = struct
   end
 
   type t +=
-  | Blank_line of Layout.blanks attributed node
+  | Blank_line of Layout.blanks node
   | Block_quote of Block_quote.t attributed node
   | Blocks of t list node
   | Code_block of Code_block.t attributed node
@@ -2150,7 +2150,7 @@ module Block_struct = struct
 
   type t =
   | Block_quote of (Layout.indent * t list) attributed
-  | Blank_line of (space_pad * line_span) attributed
+  | Blank_line of space_pad * line_span
   | Code_block of code_block attributed
   | Heading of heading attributed
   | Html_block of html_block attributed
@@ -2185,9 +2185,9 @@ module Block_struct = struct
 
   (* Making blocks from the current line status *)
 
-  let blank_line p attrs =
+  let blank_line p =
     let first = p.current_char and last = p.current_line_last_char in
-    Blank_line ((0, current_line_span p ~first ~last), attrs)
+    Blank_line (0, current_line_span p ~first ~last)
 
   let thematic_break p ~indent ~last:_ attrs =
     let last = p.current_line_last_char (* let's keep everything *) in
@@ -2363,7 +2363,7 @@ module Block_struct = struct
     (* Removes trailing blank lines and add them as blank lines *)
     let rec loop blanks lines bs = match lines with
     | { pad; code; is_blank = true} :: lines ->
-        loop (Blank_line ((pad, code), Attributes.empty) :: blanks) lines bs
+        loop (Blank_line (pad, code) :: blanks) lines bs
     | [] -> (* likely assert (false) *) List.rev_append blanks bs
     | ls -> List.rev_append blanks ((Code_block (`Indented ls, attrs)) :: bs)
     in
@@ -2418,14 +2418,14 @@ module Block_struct = struct
   let end_doc_close_fenced_code_block p fenced attrs bs =
     match fenced.code with
     | (_, l) :: code when l.first > l.last (* empty line *) ->
-        Blank_line ((0, l), Attributes.empty)
+        Blank_line (0, l)
         :: Code_block (`Fenced { fenced with code }, attrs)
         :: bs
     | _ -> Code_block (`Fenced fenced, attrs) :: bs
 
   let end_doc_close_html p h attrs bs = match h.html with
   | l :: html when l.first > l.last (* empty line *) ->
-      (Blank_line ((0, l), Attributes.empty))
+      (Blank_line (0, l))
       :: Html_block ({ end_cond = None; html }, attrs) :: bs
   | _ ->
       Html_block ({ h with end_cond = None }, attrs) :: bs
@@ -2528,7 +2528,7 @@ module Block_struct = struct
   | _ -> false
 
   let rec add_open_blocks_with_line_class p ~indent_start ~indent attrs bs : _ -> t list = function
-  | Match.Blank_line -> blank_line p attrs :: bs
+  | Match.Blank_line -> blank_line p :: Ext_attributes attrs :: bs
   | Indented_code_block_line -> indented_code_block p attrs :: bs
   | Block_quote_line ->
      Block_quote ((indent, add_open_blocks p Attributes.empty []), attrs) :: bs
@@ -2637,7 +2637,7 @@ module Block_struct = struct
     | List_marker_line m when not (list_marker_can_interrupt_paragraph p m) ->
         add_paragraph_line p ~indent_start par attrs bs
     | Blank_line ->
-        blank_line p attrs :: close_paragraph p par attrs bs
+        blank_line p :: close_paragraph p par attrs bs
     | Block_quote_line ->
        Block_quote
          ((indent, add_open_blocks p Attributes.empty []), Attributes.empty)
@@ -2706,7 +2706,9 @@ module Block_struct = struct
           Code_block ((`Fenced { b with fence }), attrs) :: bs
 
   let try_add_to_html_block p b attrs bs = match b.end_cond with
-  | None -> add_open_blocks p Attributes.empty (Html_block ({ b with end_cond = None}, attrs) :: bs)
+  | None ->
+     add_open_blocks p Attributes.empty
+       (Html_block ({ b with end_cond = None}, attrs) :: bs)
   | Some end_cond ->
       let start = p.current_char and last = p.current_line_last_char in
       let l = current_line_span p ~first:start ~last in
@@ -2714,8 +2716,7 @@ module Block_struct = struct
       then Html_block ({ b with html = l :: b.html }, attrs) :: bs else
       match end_cond with
       | `End_blank | `End_blank_7 ->
-          blank_line p Attributes.empty
-          :: Html_block ({ b with end_cond = None }, attrs) :: bs
+          blank_line p :: Html_block ({ b with end_cond = None }, attrs) :: bs
       | _ ->
           Html_block ({ end_cond = None; html = l :: b.html }, attrs) :: bs
 
@@ -2906,9 +2907,9 @@ end
 
 (* Building the final AST, invokes inline parsing. *)
 
-let block_struct_to_blank_line p pad attrs span =
+let block_struct_to_blank_line p pad span =
   let (bl, meta) = clean_raw_span p ~pad span in
-  Block.Blank_line ((bl, attrs), meta)
+  Block.Blank_line (bl, meta)
 
 let block_struct_to_code_block p attrs = function
 | `Indented (ls : Block_struct.indented_code_line list) (* non-empty *) ->
@@ -3133,7 +3134,7 @@ and block_struct_to_block p = function
 | Code_block (cb, attrs) -> block_struct_to_code_block p attrs cb
 | Heading (h, attrs) -> block_struct_to_heading p attrs h
 | Html_block (html, attrs) -> block_struct_to_html_block p attrs html
-| Blank_line ((pad, span), attrs) -> block_struct_to_blank_line p pad attrs span
+| Blank_line (pad, span) -> block_struct_to_blank_line p pad span
 | Linkref_def ((r, attrs), meta) ->
    Block.Link_reference_definition ((r, attrs), meta)
 | Ext_table ((i, rows), attrs) -> block_struct_to_table p i rows attrs

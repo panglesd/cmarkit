@@ -404,7 +404,7 @@ let footnote c fn =
   pop_indent c
 
 let block c = function
-| Block.Blank_line ((l, _), _) -> blank_line c l; true
+| Block.Blank_line (l, _) -> blank_line c l; true
 | Block.Block_quote ((b, _), _) -> block_quote c b; true
 | Block.Blocks (bs, _) -> List.iter (C.block c) bs; true
 | Block.Code_block ((cb, _), _) -> code_block c cb; true
