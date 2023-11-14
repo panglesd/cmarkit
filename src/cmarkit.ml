@@ -2546,7 +2546,12 @@ module Block_struct = struct
 
   let rec add_open_blocks_with_line_class p ~indent_start ~indent attrs bs : _ -> t list = function
     | Match.Blank_line ->
-       let attrs, meta = attrs in blank_line p :: Ext_attributes (attrs, meta) :: bs
+       let bs =
+         if attrs = empty_attrs then bs else
+       let attrs, meta = attrs in
+       Ext_attributes (attrs, meta) :: bs
+       in
+       blank_line p :: bs
   | Indented_code_block_line -> indented_code_block p attrs :: bs
   | Block_quote_line ->
      Block_quote ((indent, add_open_blocks p empty_attrs []), attrs) :: bs

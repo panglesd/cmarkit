@@ -288,7 +288,7 @@ let inline c = function
 (* Block rendering *)
 
 let add_attr c (key, value) = match value with
-  | Some value -> C.string c (" " ^ key ^ "=" ^ value);
+  | Some value -> C.string c (" " ^ key ^ "=\"" ^ value ^ "\"");
   | None -> C.string c (" " ^ key)
 
 let add_attrs c ?(include_id = true) attrs =
@@ -481,7 +481,7 @@ let table c attrs t =
 
 let standalone_attributes c attrs =
   with_attrs ~with_newline:false c attrs (fun () -> ());
-  C.string c "\n"
+  if Attributes.is_empty attrs then () else C.string c "\n"
 
 let block c = function
 | Block.Block_quote ((bq, (attrs, _)), _) -> block_quote c attrs bq; true

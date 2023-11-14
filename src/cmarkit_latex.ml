@@ -226,14 +226,20 @@ let inline c = function
 
 (* Block rendering *)
 
-let block_quote c bq =
+let attributes c attrs =
+  if Attributes.is_empty attrs then () else
+  comment c "Attributes cannot be rendered in latex"
+
+let block_quote c attrs bq =
+  attributes c attrs;
   newline c;
   C.string c "\\begin{quote}";
   C.block c (Block.Block_quote.block bq);
   C.string c "\\end{quote}";
   newline c
 
-let code_block c cb =
+let code_block c attrs cb =
+  attributes c attrs;
   let info = Option.map fst (Block.Code_block.info_string cb) in
   let lang = Option.bind info Block.Code_block.language_of_info_string in
   let code = Block.Code_block.code cb in
@@ -257,7 +263,8 @@ let code_block c cb =
       end;
       newline c
 
-let heading c h =
+let heading c attrs h =
+  attributes c attrs;
   let cmd = match Block.Heading.level h with
   | 1 -> "section{" | 2 -> "subsection{" | 3 -> "subsubsection{"
   | 4 -> "paragraph{" | 5 -> "subparagraph{" | 6 -> "subparagraph{"
@@ -288,7 +295,9 @@ let list_item c (i, _meta) =
   end;
   C.block c (Block.List_item.block i)
 
-let list c l = match Block.List'.type' l with
+let list c attrs l =
+ attributes c attrs;
+ match Block.List'.type' l with
 | `Unordered _ ->
     newline c;
     C.string c "\\begin{itemize}"; newline c;
@@ -305,23 +314,26 @@ let list c l = match Block.List'.type' l with
     C.string c "\\end{enumerate}";
     newline c
 
-let html_block c _ = newline c; comment c "CommonMark HTML block omitted"
+let html_block c attrs _ = attributes c attrs; newline c; comment c "CommonMark HTML block omitted"
 
-let paragraph c p =
-  newline c; C.inline c (Block.Paragraph.inline p); newline c
+let paragraph c attrs p =
+  attributes c attrs; newline c; C.inline c (Block.Paragraph.inline p); newline c
 
-let thematic_break c =
+let thematic_break c attrs =
+  attributes c attrs;
   newline c;
   C.string c "\\begin{center}\\rule{0.5\\linewidth}{.25pt}\\end{center}";
   newline c
 
-let math_block c cb =
+let math_block c attrs cb =
+  attributes c attrs;
   let line l = C.string c (Block_line.to_string l); newline c in
   C.string c "\\["; newline c;
   List.iter line (Block.Code_block.code cb);
   C.string c "\\]"; newline c
 
-let table c t =
+let table c attrs t =
+  attributes c attrs;
   let start c align op =
     begin match align with
     | None -> C.byte c '{';
@@ -378,19 +390,20 @@ let table c t =
   newline c; C.string c "\\bigskip"; newline c
 
 let block c = function
-| Block.Block_quote ((bq, _), _) -> block_quote c bq; true
+| Block.Block_quote ((bq, (attrs, _)), _) -> block_quote c attrs bq; true
 | Block.Blocks (bs, _) -> List.iter (C.block c) bs; true
-| Block.Code_block ((cb, _), _) -> code_block c cb; true
-| Block.Heading ((h, _), _) -> heading c h; true
-| Block.Html_block (html, _) -> html_block c html; true
-| Block.List ((l, _), _) -> list c l; true
-| Block.Paragraph ((p, _), _) -> paragraph c p; true
-| Block.Thematic_break _ -> thematic_break c; true
-| Block.Ext_math_block ((cb, _), _)-> math_block c cb; true
-| Block.Ext_table ((t, _), _)-> table c t; true
+| Block.Code_block ((cb, (attrs, _)), _) -> code_block c attrs cb; true
+| Block.Heading ((h, (attrs, _)), _) -> heading c attrs h; true
+| Block.Html_block ((html, (attrs, _)), _) -> html_block c attrs html; true
+| Block.List ((l, (attrs, _)), _) -> list c attrs l; true
+| Block.Paragraph ((p, (attrs, _)), _) -> paragraph c attrs p; true
+| Block.Thematic_break ((_, (attrs, _)), _) -> thematic_break c attrs; true
+| Block.Ext_math_block ((cb, (attrs, _)), _)-> math_block c attrs cb; true
+| Block.Ext_table ((t, (attrs, _)), _)-> table c attrs t; true
 | Block.Blank_line _ -> true
 | Block.Link_reference_definition _
 | Block.Ext_footnote_definition _ -> true;
+| Block.Ext_standalone_attributes _ -> comment c "Attributes cannot be rendered in latex"; true
 | _ -> comment c "Unknown Cmarkit block"; true
 
 (* Document rendering *)
