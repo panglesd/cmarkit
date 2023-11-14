@@ -298,7 +298,7 @@ module Attributes : sig
 
   val remove_class : t -> string -> t
 
-  (** {1 Classes}) *)
+  (** {1 Id}) *)
 
   val id : t -> string node option
 
