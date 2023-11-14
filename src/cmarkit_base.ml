@@ -1365,7 +1365,6 @@ let md_attributes ~next_line s lines ~line ~start:attr_start =
           (* TODO for inline parsing: verify there is only whitespace after *)
           Some (lines, line, List.rev attr_spans, next)
        | c ->
-          if next = start then None else
           match
             attribute ~allow_curly:false ~next_line s lines ~line []
               ~start:next
