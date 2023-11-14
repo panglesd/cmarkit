@@ -1250,7 +1250,7 @@ module Block : sig
   end
 
   type t +=
-  | Blank_line of Blank_line.t attributed node
+  | Blank_line of Blank_line.t node
   | Block_quote of Block_quote.t attributed node
   | Blocks of t list node (** Splicing *)
   | Code_block of Code_block.t attributed node
