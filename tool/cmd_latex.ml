@@ -37,7 +37,7 @@ let lift_headings_map ~extract_title doc =
       let id = Block.Heading.id h in
       let level = level - 1 in
       let h = Block.Heading.make ?id ~level inline in
-      Mapper.ret (Block.Heading ((h, Attributes.empty), meta))
+      Mapper.ret (Block.Heading ((h, (Attributes.empty, Meta.none)), meta))
   | _ -> Mapper.default
   in
   let doc = Mapper.map_doc (Mapper.make ~block ()) doc in

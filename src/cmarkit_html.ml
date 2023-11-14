@@ -189,7 +189,7 @@ let link_dest_and_title c ld =
 
 let image ?(close = " >") c i =
   match Inline.Link.reference_definition (C.get_defs c) i with
-  | Some (Link_definition.Def ((ld, attributes), _)) ->
+  | Some (Link_definition.Def ((ld, (attributes, _)), _)) ->
       let plain_text c i =
         let lines = Inline.to_plain_text ~break_on_soft:false i in
         String.concat "\n" (List.map (String.concat "") lines)
@@ -231,7 +231,7 @@ let link_footnote c l fn =
   end
 
 let link c l = match Inline.Link.reference_definition (C.get_defs c) l with
-| Some (Link_definition.Def ((ld, attributes), _)) ->
+| Some (Link_definition.Def ((ld, (attributes, _)), _)) ->
     let link, title = link_dest_and_title c ld in
     C.string c "<a href=\""; pct_encoded_string c link;
     let id = Attributes.id attributes in
@@ -312,8 +312,8 @@ let in_block c ?(with_newline = true) tag attrs f =
   f ();
   close_block ~with_newline c tag
 
-let with_attrs c attrs f =
-  if Attributes.is_empty attrs then f() else in_block c "div" attrs f
+let with_attrs c ?(with_newline = true) attrs f =
+  if Attributes.is_empty attrs then f() else in_block c ~with_newline "div" attrs f
 
 let block_quote c attrs bq =
   in_block c "blockquote" attrs @@ fun () ->
@@ -403,8 +403,9 @@ let list_item ~tight c (i, _) = match Block.List_item.ext_task_marker i with
     item_block ~tight c (Block.List_item.block i);
     C.string c close
 
-let list c l =
+let list c attrs l =
   let tight = Block.List'.tight l in
+  with_attrs c attrs @@ fun () ->
   match Block.List'.type' l with
   | `Unordered _ ->
       C.string c "<ul>\n";
@@ -418,7 +419,8 @@ let list c l =
       List.iter (list_item ~tight c) (Block.List'.items l);
       C.string c "</ol>\n"
 
-let html_block c lines =
+let html_block c attrs lines =
+  with_attrs c attrs @@ fun () ->
   let line (l, _) = C.string c l; C.byte c '\n' in
   if safe c then (comment c "CommonMark HTML block omitted"; C.byte c '\n') else
   List.iter line lines
@@ -477,17 +479,22 @@ let table c attrs t =
   rows c (Block.Table.col_count t) ~align:[] (Block.Table.rows t);
   C.string c "</table></div>"
 
+let standalone_attributes c attrs =
+  with_attrs ~with_newline:false c attrs (fun () -> ());
+  C.string c "\n"
+
 let block c = function
-| Block.Block_quote ((bq, attrs), _) -> block_quote c attrs bq; true
+| Block.Block_quote ((bq, (attrs, _)), _) -> block_quote c attrs bq; true
 | Block.Blocks (bs, _) -> List.iter (C.block c) bs; true
-| Block.Code_block ((cb, attrs), _) -> code_block c attrs cb; true
-| Block.Heading ((h, attrs), _) -> heading c attrs h; true
-| Block.Html_block ((h, todo), _) -> html_block c h; true
-| Block.List ((l, todo), _) -> list c l; true
-| Block.Paragraph ((p, attrs), _) -> paragraph c attrs p; true
-| Block.Thematic_break ((_, attrs), _) -> thematic_break c attrs; true
-| Block.Ext_math_block ((cb, attrs), _) -> math_block c attrs cb; true
-| Block.Ext_table ((t, attrs), _) -> table c attrs t; true
+| Block.Code_block ((cb, (attrs, _)), _) -> code_block c attrs cb; true
+| Block.Heading ((h, (attrs, _)), _) -> heading c attrs h; true
+| Block.Html_block ((h, (attrs, _)), _) -> html_block c attrs h; true
+| Block.List ((l, (attrs, _)), _) -> list c attrs l; true
+| Block.Paragraph ((p, (attrs, _)), _) -> paragraph c attrs p; true
+| Block.Thematic_break ((_, (attrs, _)), _) -> thematic_break c attrs; true
+| Block.Ext_math_block ((cb, (attrs, _)), _) -> math_block c attrs cb; true
+| Block.Ext_table ((t, (attrs, _)), _) -> table c attrs t; true
+| Block.Ext_standalone_attributes (attrs, _) -> standalone_attributes c attrs; true
 | Block.Blank_line _
 | Block.Link_reference_definition _
 | Block.Ext_footnote_definition _ -> true

@@ -87,7 +87,7 @@ let set_unknown_code_block_lang ~lang doc =
       let layout = Block.Code_block.layout cb in
       let code = Block.Code_block.code cb in
       let cb = Block.Code_block.make ~layout ~info_string:default code in
-      Mapper.ret (Block.Code_block ((cb, Attributes.empty), meta))
+      Mapper.ret (Block.Code_block ((cb, (Attributes.empty, Meta.none)), meta))
   | _ ->
       Mapper.default (* let the mapper thread the map *)
   in

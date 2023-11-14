@@ -77,7 +77,6 @@ module Attributes = struct
     match key, value with
     | "id", Some value -> set_id t value
     | "class", Some (value, meta) ->
-       Format.printf "value: %s\n%!" value;
        let values = match value.[0] with
          | '"' ->
             let value = String.sub value 1 (String.length value - 2) in
@@ -110,7 +109,9 @@ module Attributes = struct
         t.kv_attributes
 end
 
-type 'a attributed = 'a * Attributes.t
+let empty_attrs = Attributes.empty, None
+
+type 'a attributed = 'a * Attributes.t node
 
 module Block_line = struct
   let _list_of_string flush s = (* cuts [s] on newlines *)
@@ -817,7 +818,8 @@ module Block = struct
     type Label.def += Def of t attributed node
     let stub label defined_label =
       Def
-        (({ indent = 0; label; defined_label; block = empty}, Attributes.empty),
+        (({ indent = 0; label; defined_label; block = empty},
+          (Attributes.empty, Meta.none)),
          Meta.none)
   end
 
@@ -825,7 +827,7 @@ module Block = struct
   | Ext_math_block of Code_block.t attributed node
   | Ext_table of Table.t attributed node
   | Ext_footnote_definition of Footnote.t attributed node
-
+  | Ext_standalone_attributes of Attributes.t node
   (* Functions on blocks *)
 
   let err_unknown = "Unknown Cmarkit.Block.t type extension"
@@ -837,12 +839,14 @@ module Block = struct
   | List (_, m) | Paragraph (_, m) | Thematic_break (_, m)
   | Ext_math_block (_, m) | Ext_table (_, m)
   | Ext_footnote_definition (_, m) -> m
+  | Ext_standalone_attributes (_, m) -> m
   | b -> ext b
 
   let rec normalize ?(ext = ext_none) = function
   | Blank_line _ | Code_block _ | Heading _ | Html_block _
   | Link_reference_definition _ | Paragraph _ | Thematic_break _
-  | Blocks ([], _) | Ext_math_block _ | Ext_table _ as b -> b
+  | Blocks ([], _) | Ext_math_block _ | Ext_table _
+  | Ext_standalone_attributes _ as b -> b
   | Block_quote ((b, attr), m) ->
       let b = { b with block = normalize ~ext b.block } in
       Block_quote ((b, attr), m)
@@ -1589,7 +1593,8 @@ module Inline_struct = struct
         in
         let label = None and defined_label = None in
         let ld =
-          { Link_definition.layout; label; defined_label; dest; title }, (* attrs *) Attributes.empty (* TODOOOOOOOOOOOOOOO *)
+          { Link_definition.layout; label; defined_label; dest; title },
+          (Attributes.empty, Meta.none)
         in
         let textloc =
           let first = st and last = start in
@@ -2150,23 +2155,27 @@ module Block_struct = struct
 
   type metadata = line_span
 
+  type struct_attrs = Attributes.t * (line_span * line_span) option
+
+  type 'a struct_attributed = 'a * struct_attrs
+
   type t =
-  | Block_quote of (Layout.indent * t list) attributed
+  | Block_quote of (Layout.indent * t list) struct_attributed
   | Blank_line of space_pad * line_span
-  | Code_block of code_block attributed
-  | Heading of heading attributed
-  | Html_block of html_block attributed
-  | List of list' attributed
+  | Code_block of code_block struct_attributed
+  | Heading of heading struct_attributed
+  | Html_block of html_block struct_attributed
+  | List of list' struct_attributed
   | Linkref_def of Link_definition.t attributed node
-  | Paragraph of paragraph attributed
+  | Paragraph of paragraph struct_attributed
   | Thematic_break of
-      (Layout.indent * line_span (* including trailing blanks *)) attributed
+      (Layout.indent * line_span (* including trailing blanks *)) struct_attributed
   | Ext_table of
       (Layout.indent * (line_span * line_span (* trail blanks *)) list)
-        attributed
+        struct_attributed
   | Ext_footnote of
-      (Layout.indent * (Label.t * Label.t option) * t list) attributed
-  | Ext_attributes of Attributes.t
+      (Layout.indent * (Label.t * Label.t option) * t list) struct_attributed
+  | Ext_attributes of struct_attrs
 
   and list_item =
    { before_marker : Layout.indent;
@@ -2335,6 +2344,12 @@ module Block_struct = struct
       in
       let defined_label = def_label p label in
       let label = Some label in
+      let attrs =
+        fst attrs,
+        match snd attrs with
+        | None -> Meta.none
+        | Some (first,last) -> meta_of_spans p ~first ~last
+      in
       let ld =
         ({ Link_definition.layout; label; defined_label; dest; title }, attrs),
         meta
@@ -2355,7 +2370,7 @@ module Block_struct = struct
             (* Link defs can't interrupt a paragraph so we are good now. *)
             Paragraph
               ({ maybe_ref = false; lines = List.rev ls }, attrs) :: prevs
-        | Some (ld, ls) -> loop p Attributes.empty (Linkref_def ld :: prevs) ls
+        | Some (ld, ls) -> loop p empty_attrs (Linkref_def ld :: prevs) ls
     in
     loop p attrs prevs (List.rev lines)
 
@@ -2530,10 +2545,11 @@ module Block_struct = struct
   | _ -> false
 
   let rec add_open_blocks_with_line_class p ~indent_start ~indent attrs bs : _ -> t list = function
-  | Match.Blank_line -> blank_line p :: Ext_attributes attrs :: bs
+    | Match.Blank_line ->
+       let attrs, meta = attrs in blank_line p :: Ext_attributes (attrs, meta) :: bs
   | Indented_code_block_line -> indented_code_block p attrs :: bs
   | Block_quote_line ->
-     Block_quote ((indent, add_open_blocks p Attributes.empty []), attrs) :: bs
+     Block_quote ((indent, add_open_blocks p empty_attrs []), attrs) :: bs
   | Thematic_break_line last -> thematic_break p ~indent ~last attrs :: bs
   | List_marker_line m -> list p ~indent m attrs bs
   | Atx_heading_line (level, after_open, first_content, last_content) ->
@@ -2547,7 +2563,8 @@ module Block_struct = struct
   | Ext_table_row last -> table p ~indent ~last attrs :: bs
   | Ext_footnote_label (rev_spans, last, key) ->
      footnote p ~indent ~last rev_spans key attrs :: bs
-  | Ext_attributes (new_attrs, last) -> attributes p new_attrs attrs last :: bs
+  | Ext_attributes (new_attrs, first, last) ->
+     attributes p (new_attrs, Some (first, last)) attrs last :: bs
   | Setext_underline_line _ | Nomatch ->
       (* This function should be called with a line type that comes out
          of match_line_type ~no_setext:true *)
@@ -2566,10 +2583,10 @@ module Block_struct = struct
     in
     accept_cols p ~count:(last - p.current_char + 1);
     Ext_footnote
-      ((indent, (label, defined_label), add_open_blocks p Attributes.empty []),
+      ((indent, (label, defined_label), add_open_blocks p empty_attrs []),
        attrs)
 
-  and attributes p new_attrs attrs last =
+  and attributes p (new_attrs, new_meta) (attrs, meta) last =
     let add_attribute new_attr attrs = match new_attr with
       | `Class rev_spans ->
          let new_class = Inline_struct.attr_of_rev_spans p rev_spans in
@@ -2586,7 +2603,14 @@ module Block_struct = struct
          Attributes.add key value attrs
     in
     let attrs = List.fold_right add_attribute new_attrs attrs in
-    Ext_attributes attrs
+    let first = p.current_char and last = p.current_line_last_char in
+    let meta =
+      let line = current_line_span p ~first ~last in
+      match meta with
+      | None -> Some(line, line)
+      | Some (first, _) -> Some (first, line)
+    in
+    Ext_attributes (attrs, meta)
 
   and list_item ~indent p (list_type, last) =
     let before_marker = indent and marker_size = last - p.current_char + 1 in
@@ -2608,7 +2632,7 @@ module Block_struct = struct
     in
     let min = indent + marker_size + after_marker + ext_task_marker_size in
     min, { before_marker; marker; after_marker; ext_task_marker;
-           blocks = add_open_blocks p Attributes.empty [] }
+           blocks = add_open_blocks p empty_attrs [] }
 
   and list ~indent p (list_type, _ as m) attrs bs =
     let item_min_indent, item = list_item ~indent p m in
@@ -2642,7 +2666,7 @@ module Block_struct = struct
         blank_line p :: close_paragraph p par attrs bs
     | Block_quote_line ->
        Block_quote
-         ((indent, add_open_blocks p Attributes.empty []), Attributes.empty)
+         ((indent, add_open_blocks p empty_attrs []), empty_attrs)
        :: (close_paragraph p par attrs bs)
     | Setext_underline_line (level, last_underline) ->
         let bs = close_paragraph p par attrs bs in
@@ -2652,22 +2676,22 @@ module Block_struct = struct
         | bs -> paragraph p ~start:indent_start attrs :: bs
         end
     | Thematic_break_line last ->
-        thematic_break p ~indent ~last Attributes.empty
+        thematic_break p ~indent ~last empty_attrs
         :: (close_paragraph p par attrs bs)
     | List_marker_line m ->
-        list p ~indent m Attributes.empty (close_paragraph p par attrs bs)
+        list p ~indent m empty_attrs (close_paragraph p par attrs bs)
     | Atx_heading_line (level, after_open, first_content, last_content) ->
         let bs = close_paragraph p par attrs bs in
         atx_heading p ~indent ~level ~after_open ~first_content ~last_content
-          Attributes.empty
+          empty_attrs
         :: bs
     | Fenced_code_block_line (fence_first, fence_last, info) ->
         let bs = close_paragraph p par attrs bs in
         fenced_code_block p ~indent ~fence_first ~fence_last ~info
-          Attributes.empty
+          empty_attrs
         :: bs
     | Html_block_line end_cond ->
-        html_block p ~end_cond ~indent_start Attributes.empty
+        html_block p ~end_cond ~indent_start empty_attrs
         :: (close_paragraph p par attrs bs)
     | Nomatch -> assert false
 
@@ -2675,7 +2699,7 @@ module Block_struct = struct
     if current_indent p < 4 then
       if has_next_non_blank p
       then
-        add_open_blocks p Attributes.empty
+        add_open_blocks p empty_attrs
           (close_indented_code_block p ls attrs bs)
       else
         (* Blank but white is not data, make an empty span *)
@@ -2693,7 +2717,7 @@ module Block_struct = struct
 
   let try_add_to_fenced_code_block p f attrs bs = match f with
   | { fence = { closing_fence = Some _; _}; _ } -> (* block is closed *)
-      add_open_blocks p Attributes.empty (Code_block ((`Fenced f), attrs) :: bs)
+      add_open_blocks p empty_attrs (Code_block ((`Fenced f), attrs) :: bs)
   | { fence = { indent; fence; _} ; code = ls} as b ->
       let start = p.current_char and last = p.current_line_last_char in
       match Match.fenced_code_block_continue ~fence p.i ~last ~start with
@@ -2709,7 +2733,7 @@ module Block_struct = struct
 
   let try_add_to_html_block p b attrs bs = match b.end_cond with
   | None ->
-     add_open_blocks p Attributes.empty
+     add_open_blocks p empty_attrs
        (Html_block ({ b with end_cond = None}, attrs) :: bs)
   | Some end_cond ->
       let start = p.current_char and last = p.current_line_last_char in
@@ -2748,7 +2772,7 @@ module Block_struct = struct
         Ext_table ((ind, row :: rows), attrs) :: bs
     | ltype ->
         let bs = Ext_table ((ind, rows), attrs) :: bs in
-        add_open_blocks_with_line_class p ~indent ~indent_start Attributes.empty
+        add_open_blocks_with_line_class p ~indent ~indent_start empty_attrs
           bs ltype
 
   let rec try_add_to_block_quote p indent_layout (bq : t list) attrs bs =
@@ -2763,13 +2787,13 @@ module Block_struct = struct
               Block_quote ((indent_layout, close_last_block p bq), attrs) :: bs
             in
             add_open_blocks_with_line_class p ~indent ~indent_start
-              Attributes.empty bs ltype
+              empty_attrs bs ltype
         end
     | ltype ->
         let bs =
           Block_quote ((indent_layout, close_last_block p bq), attrs) :: bs
         in
-        add_open_blocks_with_line_class p ~indent ~indent_start Attributes.empty
+        add_open_blocks_with_line_class p ~indent ~indent_start empty_attrs
           bs ltype
 
   and try_add_to_footnote p fn_indent label blocks attrs bs =
@@ -2784,7 +2808,7 @@ module Block_struct = struct
               let blocks = close_last_block p blocks in
               let bs = (close_footnote p fn_indent label blocks attrs) bs in
               add_open_blocks_with_line_class p ~indent ~indent_start
-                Attributes.empty bs lt
+                empty_attrs bs lt
           end
       | Blank_line ->
           Ext_footnote ((fn_indent, label, add_line p blocks), attrs) :: bs
@@ -2792,7 +2816,7 @@ module Block_struct = struct
           let blocks = close_last_block p blocks in
           let bs = close_footnote p fn_indent label blocks attrs bs in
           add_open_blocks_with_line_class p ~indent ~indent_start
-            Attributes.empty bs ltype
+            empty_attrs bs ltype
     end else begin
       accept_cols p ~count:(fn_indent + 1);
       Ext_footnote ((fn_indent, label, add_line p blocks), attrs) :: bs
@@ -2808,7 +2832,7 @@ module Block_struct = struct
       then
          (* Item can only start with a single blank line, if we are
             here it's not a new item so the list ends *)
-        add_open_blocks p Attributes.empty (List (list, attrs) :: bs)
+        add_open_blocks p empty_attrs (List (list, attrs) :: bs)
       else begin
         accept_cols ~count:list.item_min_indent p;
         let item = { item with blocks = add_line p item.blocks } in
@@ -2828,19 +2852,19 @@ module Block_struct = struct
         | None ->
             let bs = close_list p list attrs bs in
             add_open_blocks_with_line_class p ~indent ~indent_start
-              Attributes.empty bs ltype
+              empty_attrs bs ltype
         end
     | List_marker_line m ->
         try_add_to_list p ~indent m list attrs bs
     | ltype ->
         let bs = close_list p list attrs bs in
         add_open_blocks_with_line_class p ~indent ~indent_start
-          Attributes.empty bs ltype
+          empty_attrs bs ltype
 
   and add_line p = function
   | Paragraph (par, attrs) :: bs -> try_add_to_paragraph p par attrs bs
   | ((Thematic_break _ | Heading _ | Blank_line _ | Linkref_def _) :: _)
-  | [] as bs -> add_open_blocks p Attributes.empty bs
+  | [] as bs -> add_open_blocks p empty_attrs bs
   | List (list, attrs) :: bs -> try_add_to_list_item p list attrs bs
   | Code_block ((`Indented ls), attrs) :: bs ->
      try_add_to_indented_code_block p ls attrs bs
@@ -2909,6 +2933,13 @@ end
 
 (* Building the final AST, invokes inline parsing. *)
 
+let block_struct_to_attr p (attrs, meta) =
+  let meta = match meta with
+    | None -> Meta.none
+    | Some (first, last) -> meta_of_spans p ~first ~last
+  in
+  attrs, meta
+
 let block_struct_to_blank_line p pad span =
   let (bl, meta) = clean_raw_span p ~pad span in
   Block.Blank_line (bl, meta)
@@ -2924,6 +2955,7 @@ let block_struct_to_code_block p attrs = function
       let start = Meta.textloc (snd (List.hd code)) in
       meta p (Textloc.set_last start ~last_byte ~last_line)
     in
+    let attrs = block_struct_to_attr p attrs in
     Block.Code_block (({layout; info_string; code}, attrs), meta)
 | `Fenced { Block_struct.fence; code = ls } ->
     let layout =
@@ -2943,6 +2975,7 @@ let block_struct_to_code_block p attrs = function
       in
       meta_of_spans p ~first ~last
     in
+    let attrs = block_struct_to_attr p attrs in
     let cb =
       {Block.Code_block.layout = `Fenced layout; info_string; code}, attrs
     in
@@ -2966,6 +2999,7 @@ let block_struct_to_heading p attrs = function
     | false -> None
     | true -> Some (`Auto (Inline.id ~buf:p.buf inline))
     in
+    let attrs = block_struct_to_attr p attrs in
     Block.Heading (({layout; level; inline; id}, attrs), meta)
 | `Setext { Block_struct.level; heading_lines; underline } ->
     let (leading_indent, trailing_blanks), inline =
@@ -2987,6 +3021,7 @@ let block_struct_to_heading p attrs = function
     | false -> None
     | true -> Some (`Auto (Inline.id ~buf:p.buf inline))
     in
+    let attrs = block_struct_to_attr p attrs in
     Block.Heading
       (({ layout = `Setext layout; level; inline; id }, attrs), meta)
 
@@ -2996,16 +3031,19 @@ let block_struct_to_html_block p attrs (b : Block_struct.html_block) =
   let lines = List.rev_map (clean_raw_span p) b.html in
   let start_loc = Meta.textloc (snd (List.hd lines)) in
   let meta = meta p (Textloc.set_last start_loc ~last_byte ~last_line) in
+  let attrs = block_struct_to_attr p attrs in
   Block.Html_block ((lines, attrs), meta)
 
 let block_struct_to_paragraph p par attrs =
   let layout, inline = Inline_struct.parse p par.Block_struct.lines in
   let leading_indent, trailing_blanks = layout in
   let meta = Inline.meta inline in
+  let attrs = block_struct_to_attr p attrs in
   Block.Paragraph (({ leading_indent; inline; trailing_blanks }, attrs), meta)
 
 let block_struct_to_thematic_break p indent span attrs =
   let layout, meta = (* not layout because of loc *) clean_raw_span p span in
+  let attrs = block_struct_to_attr p attrs in
   Block.Thematic_break (({ indent; layout }, attrs), meta)
 
 let block_struct_to_table p indent rows attrs =
@@ -3028,6 +3066,7 @@ let block_struct_to_table p indent rows attrs =
   let last = fst (List.hd rows) in
   let first, col_count, rows = loop p 0 false [] rows in
   let meta = meta_of_spans p ~first ~last in
+  let attrs = block_struct_to_attr p attrs in
   Block.Ext_table (({ indent; col_count; rows }, attrs), meta)
 
 let rec block_struct_to_block_quote p indent bs attrs =
@@ -3040,6 +3079,7 @@ let rec block_struct_to_block_quote p indent bs attrs =
       let first = Block.meta (List.hd quote) and last = Block.meta last in
       Block.Blocks (quote, meta_of_metas p ~first ~last)
   in
+  let attrs = block_struct_to_attr p attrs in
   Block.Block_quote (({indent; block}, attrs), Block.meta block)
 
 and block_struct_to_footnote_definition p indent (label, defined_label) bs attrs
@@ -3061,6 +3101,7 @@ and block_struct_to_footnote_definition p indent (label, defined_label) bs attrs
     let first_byte = Textloc.first_byte loc - 1 in
     Textloc.set_first loc ~first_byte ~first_line:(Textloc.first_line loc)
   in
+  let attrs = block_struct_to_attr p attrs in
   let fn =
     ({ Block.Footnote.indent; label; defined_label; block }, attrs), meta p loc
   in
@@ -3125,7 +3166,13 @@ and block_struct_to_list p list attrs =
   let last, tight = block_struct_to_list_item p (List.hd items) in
   let tight, items = loop p (not list.loose && tight) [last] (List.tl items) in
   let meta = meta_of_metas p ~first:(snd (List.hd items)) ~last:(snd last) in
+  let attrs = block_struct_to_attr p attrs in
   Block.List (({ type' = list.Block_struct.list_type; tight; items }, attrs), meta)
+
+
+and block_struct_to_standalone_attrs p attrs =
+  let attrs = block_struct_to_attr p attrs in
+  Block.Ext_standalone_attributes attrs
 
 and block_struct_to_block p = function
 | Block_struct.Block_quote ((ind, bs), attrs) ->
@@ -3142,8 +3189,7 @@ and block_struct_to_block p = function
 | Ext_table ((i, rows), attrs) -> block_struct_to_table p i rows attrs
 | Ext_footnote ((i, labels, bs), attrs) ->
     block_struct_to_footnote_definition p i labels bs attrs
-| Ext_attributes _ ->
-    assert false (* should already have been combined *)
+| Ext_attributes attrs -> block_struct_to_standalone_attrs p attrs
 
 let block_struct_to_doc p (doc, meta) =
   match List.rev_map (block_struct_to_block p) doc with
