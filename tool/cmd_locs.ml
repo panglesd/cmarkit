@@ -232,6 +232,9 @@ and block ~indent:n ppf = function
     pf ppf "@[<v>%a@,%a@,%a@]"
       (loc "Footnote definition" ~indent:n) m
       (label ~indent:(n + 2)) l (block ~indent:(n + 2)) b
+| Block.Ext_standalone_attributes (attrs, m) ->
+    pf ppf "@[<v>%a@]"
+      (loc "Standalone attributes" ~indent:n) m
 | _ ->
     indent ppf n; Format.pp_print_string ppf "Unknown Cmarkit block"
 
