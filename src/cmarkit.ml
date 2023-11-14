@@ -2545,25 +2545,7 @@ module Block_struct = struct
   | Ext_table_row last -> table p ~indent ~last attrs :: bs
   | Ext_footnote_label (rev_spans, last, key) ->
      footnote p ~indent ~last rev_spans key attrs :: bs
-  | Ext_attributes (new_attrs, last) ->
-     let add_attribute new_attr attrs = match new_attr with
-       | `Class rev_spans ->
-          let new_class = Inline_struct.attr_of_rev_spans p rev_spans in
-          Attributes.add_class attrs new_class
-       | `Id rev_spans ->
-          let new_id = Inline_struct.attr_of_rev_spans p rev_spans in
-          Attributes.set_id attrs new_id
-       | `Kv_attr (key, value) ->
-          let key = clean_raw_span p key in
-          let value = match value with
-              None -> None
-            | Some value -> Some (Inline_struct.attr_of_rev_spans p value)
-          in
-          Attributes.add key value attrs
-     in
-     let attrs = List.fold_right add_attribute new_attrs attrs in
-     Ext_attributes attrs :: bs
-
+  | Ext_attributes (new_attrs, last) -> attributes p new_attrs attrs last :: bs
   | Setext_underline_line _ | Nomatch ->
       (* This function should be called with a line type that comes out
          of match_line_type ~no_setext:true *)
@@ -2584,6 +2566,25 @@ module Block_struct = struct
     Ext_footnote
       ((indent, (label, defined_label), add_open_blocks p Attributes.empty []),
        attrs)
+
+  and attributes p new_attrs attrs last =
+    let add_attribute new_attr attrs = match new_attr with
+      | `Class rev_spans ->
+         let new_class = Inline_struct.attr_of_rev_spans p rev_spans in
+         Attributes.add_class attrs new_class
+      | `Id rev_spans ->
+         let new_id = Inline_struct.attr_of_rev_spans p rev_spans in
+         Attributes.set_id attrs new_id
+      | `Kv_attr (key, value) ->
+         let key = clean_raw_span p key in
+         let value = match value with
+             None -> None
+           | Some value -> Some (Inline_struct.attr_of_rev_spans p value)
+         in
+         Attributes.add key value attrs
+    in
+    let attrs = List.fold_right add_attribute new_attrs attrs in
+    Ext_attributes attrs
 
   and list_item ~indent p (list_type, last) =
     let before_marker = indent and marker_size = last - p.current_char + 1 in
