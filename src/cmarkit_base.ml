@@ -1342,7 +1342,7 @@ let ext_footnote_label buf s ~line_pos ~last ~start =
 let md_attributes ~next_line s lines ~line ~start:attr_start =
   (* attr_start has { *)
   let start = attr_start + 1 in
-  let rec loop ~next_line s lines ~line attr_spans ~start =
+  let rec loop ?(first_iter = false) ~next_line s lines ~line attr_spans ~start =
     match
       first_non_blank_over_nl' ~next_line s lines ~line [] ~start
     with
@@ -1365,6 +1365,7 @@ let md_attributes ~next_line s lines ~line ~start:attr_start =
           (* TODO for inline parsing: verify there is only whitespace after *)
           Some (lines, line, List.rev attr_spans, next)
        | c ->
+          if next = start && not first_iter then None else
           match
             attribute ~allow_curly:false ~next_line s lines ~line []
               ~start:next
@@ -1374,14 +1375,16 @@ let md_attributes ~next_line s lines ~line ~start:attr_start =
              loop ~next_line s lines ~line (`Kv_attr attr :: attr_spans)
                ~start:(last+1)
   in
-  loop ~next_line s lines ~line [] ~start
+  loop ~first_iter:true ~next_line s lines ~line [] ~start
 
 let ext_attributes s ~last ~start =
   let line = { line_pos = Textloc.line_pos_none; first = start; last } in
   let next_line () = None in
   match md_attributes ~next_line s () ~line ~start with
   | None -> Nomatch
-  | Some (_, _, spans, last) -> Ext_attributes (spans, last)
+  | Some (_, _, spans, attr_end) ->
+      let next = first_non_blank s ~last ~start:(attr_end + 1) in
+      if next >= last then Ext_attributes (spans, attr_end) else Nomatch
 
 let could_be_link_reference_definition s ~last ~start =
   (* https://spec.commonmark.org/current/#link-reference-definition *)
