@@ -75,17 +75,19 @@ module Attributes = struct
 
   let add (key, meta) value t =
     match key, value with
-      "id", Some value -> set_id t value
-    | "class", Some value -> add_class t value
+    | "id", Some value -> set_id t value
+    | "class", Some (value, meta) ->
+       Format.printf "value: %s\n%!" value;
+       let values = match value.[0] with
+         | '"' ->
+            let value = String.sub value 1 (String.length value - 2) in
+            String.split_on_char ' ' value
+         | _ -> [ value ]
+       in
+       List.fold_left (fun t value -> add_class t (value, meta)) t values
     | _ ->
        let kv_attributes = ((key, meta), value) :: t.kv_attributes in
        { t with kv_attributes }
-
-  (* let remove key t = *)
-  (*   { t with *)
-  (*     kv_attributes = *)
-  (*       List.filter(fun (key', _) -> compare key key' <> 0) t.kv_attributes *)
-  (*   } *)
 
   let find key t =
     List.find_opt (function ((k, _), _) -> String.equal k key) t.kv_attributes
@@ -99,7 +101,7 @@ module Attributes = struct
       | [] -> []
       | x ->
          let classes = x |> List.map fst |> String.concat " " in
-         [ "class", Some ("\"" ^ classes ^ "\"") ]
+         [ "class", Some classes ]
     in
     id @ class' @
       List.map (function
