@@ -271,18 +271,36 @@ let inline c = function
 (* Block rendering *)
 
 let attributes c attrs =
-  let attrs = Cmarkit.Attributes.get_all ~include_id:true attrs in
+  let kv_attrs =
+    let kv_attrs = Cmarkit.Attributes.kv_attributes attrs in
+    List.map
+      (fun ((k,_), v) ->
+        let v = match v with None -> None | Some (v, _) -> Some v in
+        `Kv (k,v))
+      kv_attrs
+  in
+  let class' =
+    let class' = Cmarkit.Attributes.class' attrs in
+    List.map (fun (c, _) -> `Class c) class'
+  in
+  let id =
+    let id = Cmarkit.Attributes.id attrs in
+    match id with
+    | Some (id, _) -> [`Id id]
+    | _ -> []
+  in
+  let attrs = id @ class' @ kv_attrs in
   if attrs = [] then () else
     begin
       newline c;
       indent c;
       let attrs =
-        List.concat_map
+        List.map
           (function
-           | "id", Some v -> ["#"^v]
-           | "class", Some v -> String.split_on_char ' ' v |> List.map (fun x -> "."^x)
-           | k, Some v -> [k^"=\""^v^"\""]
-           | k, None -> [k]
+           | `Id v -> "#"^v
+           | `Class v -> "." ^ v
+           | `Kv (k, Some v) -> k^"=\""^v^"\""
+           | `Kv (k, None) -> k
           ) attrs
       in
       let s = String.concat " " attrs in

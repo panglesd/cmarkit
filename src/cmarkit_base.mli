@@ -373,6 +373,19 @@ val ext_footnote_label :
     \[[start];[last]\]. The returned position is the rightmost [:].
     This remains on the same line. *)
 
+val md_attributes:
+  next_line:'a next_line ->
+  string ->
+  'a ->
+  line:line_span ->
+  start:byte_pos ->
+  ('a * line_span *
+     [> `Class of (Textloc.byte_pos * line_span) list
+     | `Id of (Textloc.byte_pos * line_span) list
+     | `Kv_attr of line_span * (Textloc.byte_pos * line_span) list option ]
+       list * int)
+    option
+
 val ext_attributes :
   string -> last:byte_pos -> start:byte_pos -> line_type
 (** [ext_attributes s ~last ~start] matches an attribute specification.

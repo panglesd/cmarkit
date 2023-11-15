@@ -129,6 +129,61 @@ let pct_encoded_string c s = buffer_add_pct_encoded_string (C.buffer c) s
 
 (* Rendering functions *)
 
+let add_attr c (key, value) = match value with
+  | Some value -> C.string c (" " ^ key ^ "=\"" ^ value ^ "\"");
+  | None -> C.string c (" " ^ key)
+
+let add_attrs c ?(include_id = true) attrs =
+  let kv_attrs =
+    let kv_attrs = Cmarkit.Attributes.kv_attributes attrs in
+    List.map
+      (fun ((k,_), v) ->
+        let v = match v with None -> None | Some (v, _) -> Some v in
+        (k,v))
+      kv_attrs
+  in
+  let class' =
+    let class' = Cmarkit.Attributes.class' attrs in
+    let class' = List.map (fun (c, _) -> c) class' in
+    match class' with
+    | [] -> []
+    | _ -> ["class", Some (String.concat " " class') ]
+  in
+  let id =
+    let id = Cmarkit.Attributes.id attrs in
+    match id with
+    | Some (id, _) when include_id -> ["id", Some id ]
+    | _ -> []
+  in
+  let attrs = id @ class' @ kv_attrs in
+  List.iter (add_attr c) attrs
+
+let open_block ?(with_newline = true) c tag attrs =
+  C.string c "<";
+  C.string c tag;
+  add_attrs c attrs;
+  C.string c ">";
+  if with_newline then C.string c "\n"
+
+let close_block ?(with_newline = true) c tag =
+  C.string c "</";
+  C.string c tag;
+  C.string c ">";
+  if with_newline then C.string c "\n"
+
+let in_block c ?(with_newline = true) tag attrs f =
+  open_block ~with_newline c tag attrs;
+  f ();
+  close_block ~with_newline c tag
+
+let with_attrs c ?(with_newline = true) attrs f =
+  if Attributes.is_empty attrs then f() else
+  in_block c ~with_newline "div" attrs f
+
+let with_attrs_span c ?(with_newline = true) attrs f =
+  if Attributes.is_empty attrs then f() else
+  in_block c ~with_newline "span" attrs f
+
 let comment c s =
   C.string c "<!-- "; html_escaped_string c s; C.string c " -->"
 
@@ -270,6 +325,12 @@ let math_span c ms =
    tex_lines c tex;
    C.string c (if Inline.Math_span.display ms then "\\]" else "\\)"))
 
+let attribute_span c as' =
+  let content = Inline.Attributes_span.content as' in
+  let attrs, _ = Inline.Attributes_span.attrs as' in
+  with_attrs_span ~with_newline:false c attrs @@ fun () ->
+  C.inline c content
+
 let inline c = function
 | Inline.Autolink (a, _) -> autolink c a; true
 | Inline.Break (b, _) -> break c b; true
@@ -282,38 +343,11 @@ let inline c = function
 | Inline.Strong_emphasis (e, _) -> strong_emphasis c e; true
 | Inline.Text (t, _) -> html_escaped_string c t; true
 | Inline.Ext_strikethrough (s, _) -> strikethrough c s; true
+| Inline.Ext_attrs as' -> attribute_span c as'; true
 | Inline.Ext_math_span (ms, _) -> math_span c ms; true
 | _ -> comment c "<!-- Unknown Cmarkit inline -->"; true
 
 (* Block rendering *)
-
-let add_attr c (key, value) = match value with
-  | Some value -> C.string c (" " ^ key ^ "=\"" ^ value ^ "\"");
-  | None -> C.string c (" " ^ key)
-
-let add_attrs c ?(include_id = true) attrs =
-  List.iter (add_attr c) (Attributes.get_all ~include_id attrs)
-
-let open_block ?(with_newline = true) c tag attrs =
-  C.string c "<";
-  C.string c tag;
-  add_attrs c attrs;
-  C.string c ">";
-  if with_newline then C.string c "\n"
-
-let close_block ?(with_newline = true) c tag =
-  C.string c "</";
-  C.string c tag;
-  C.string c ">";
-  if with_newline then C.string c "\n"
-
-let in_block c ?(with_newline = true) tag attrs f =
-  open_block ~with_newline c tag attrs;
-  f ();
-  close_block ~with_newline c tag
-
-let with_attrs c ?(with_newline = true) attrs f =
-  if Attributes.is_empty attrs then f() else in_block c ~with_newline "div" attrs f
 
 let block_quote c attrs bq =
   in_block c "blockquote" attrs @@ fun () ->

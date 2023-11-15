@@ -317,7 +317,7 @@ module Attributes : sig
   val find : string -> t -> (key node * value node option) option
   (** [find k m] the value of [k] in [m], if any. *)
 
-  val get_all : ?include_id:bool -> t -> (key * value option) list
+  val kv_attributes : t -> (key node * value node option) list
   (** TODO. *)
 end
 
@@ -930,9 +930,20 @@ module Inline : sig
         separated by space. The {!tex} function does that for you. *)
   end
 
+  module Attributes_span : sig
+    type inline := t
+
+    type nonrec t = { content : t ; attrs: Attributes.t node}
+
+    val make : inline -> Attributes.t node -> t
+    val content : t -> inline
+    val attrs : t -> Attributes.t node
+  end
+
   type t +=
   | Ext_strikethrough of Strikethrough.t node
-  | Ext_math_span of Math_span.t node (** *)
+  | Ext_math_span of Math_span.t node
+  | Ext_attrs of Attributes_span.t (** *)
   (** The supported inline extensions. These inlines are only parsed when
       {!Doc.of_string} is called with [strict:false]. *)
 
