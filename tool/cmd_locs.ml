@@ -110,6 +110,10 @@ and inline ~indent:n ppf = function
     let i = Inline.Strikethrough.inline s in
     pf ppf "@[<v>%a@,%a@]"
       (loc "Strikethrough" ~indent:n) m (inline ~indent:(n + 2)) i
+| Inline.Ext_attrs (s, m) ->
+    let i = Inline.Attributes_span.content s in
+    pf ppf "@[<v>%a@,%a@]"
+      (loc "Attributes" ~indent:n) m (inline ~indent:(n + 2)) i
 | Inline.Ext_math_span (ms, m) ->
     let display = Inline.Math_span.display ms in
     let line = tight_block_line "Math span line" ~indent:(n + 2) in
