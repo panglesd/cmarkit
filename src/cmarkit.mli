@@ -943,7 +943,7 @@ module Inline : sig
   type t +=
   | Ext_strikethrough of Strikethrough.t node
   | Ext_math_span of Math_span.t node
-  | Ext_attrs of Attributes_span.t (** *)
+  | Ext_attrs of Attributes_span.t node (** *)
   (** The supported inline extensions. These inlines are only parsed when
       {!Doc.of_string} is called with [strict:false]. *)
 
