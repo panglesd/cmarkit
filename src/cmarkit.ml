@@ -1530,18 +1530,6 @@ module Inline_struct = struct
     in
     text, meta
 
-    let print_toks toks =
-    let rec print_tok tok = match tok with
-    | Backticks { start; count; escaped } -> Format.printf "backtick "
-    | Math_span_marks { start; count; may_open; } ->Format.printf "$ "
-    | Autolink_or_html_start { start } ->Format.printf "autolink "
-    | Link_start { start; image } ->Format.printf "link "
-    | Open_curly { start; touch_left } ->Format.printf "{ "
-    | Right_brack start -> Format.printf "] "
-    | Newline { newline = l } -> Format.printf "newline "
-    | t -> Format.printf "_ " in
-      List.iter print_tok toks ; Format.printf"\n%!"
-
   let try_full_reflink_remainder p toks line ~image ~start (* is label's [ *) =
     (* https://spec.commonmark.org/current/#full-reference-link *)
     match Match.link_label p.buf ~next_line p.i toks ~line ~start with
@@ -1729,38 +1717,16 @@ module Inline_struct = struct
     in
     (attrs, meta)
 
-
   let try_attributes p toks line ~touch_left ~start =
     match Match.md_attributes p.i ~next_line toks ~start ~line with
     | None -> None
     | Some (toks, endline, attrs, last) ->
-       (* let touch_right = *)
-       (*   let next_uchar = Match.next_uchar p.i ~last:endline.last ~after:last in *)
-       (*   not (Cmarkit_data.is_unicode_whitespace next_uchar) *)
-       (* in *)
-       (* if touch_left && touch_right then None else *)
        let position = if touch_left then `Attached else `Standalone in
-       (*   match touch_left, touch_right with *)
-       (*   | false, false -> `Standalone *)
-       (*   | true, false -> `Left *)
-       (*   | false, true -> `Right *)
-       (*   | true, true -> assert false *)
-       (* in *)
        let attrs, meta =
          attributes p (attrs, ()) (Attributes.empty, None) last
        in
        let t = Attributes { start; next = last + 1; position ; attrs ; endline } in
-       Format.printf "Before drop_until: ";
-         print_toks toks;
        let toks = drop_until ~start:(last + 1) toks in
-       Format.printf "After drop_until: ";
-         print_toks toks;
-       (* let attrs_span = *)
-       (*   Inline.Attributes_span.make *)
-       (*     (Inline.Inlines ([], Meta.none)) (attrs, Meta.none) *)
-       (* in *)
-       (* let inline = Inline.Ext_attrs attrs_span in *)
-       (* let t = Inline {start ; inline ; endline ; next = last+1} in *)
        Some (toks, endline, t)
 
   (* The following sequence of mutually recursive functions define
@@ -1807,7 +1773,7 @@ module Inline_struct = struct
   and first_pass p toks line =
     (* Parse inline atoms and links. Links are parsed here otherwise
        link reference data gets parsed as atoms. *)
-    let rec loop p toks line ~had_link acc = print_toks toks; match toks with
+    let rec loop p toks line ~had_link acc = match toks with
     | [] -> List.rev acc, had_link
     | Backticks { start; count; escaped } :: toks ->
         begin match try_code p toks line ~start ~count ~escaped with
