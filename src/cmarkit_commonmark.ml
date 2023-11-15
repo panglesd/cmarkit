@@ -299,7 +299,7 @@ let attributes c attrs =
           (function
            | `Id v -> "#"^v
            | `Class v -> "." ^ v
-           | `Kv (k, Some v) -> k^"=\""^v^"\""
+           | `Kv (k, Some v) -> k^"="^v
            | `Kv (k, None) -> k
           ) attrs
       in
