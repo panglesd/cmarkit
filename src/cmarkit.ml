@@ -1530,6 +1530,18 @@ module Inline_struct = struct
     in
     text, meta
 
+    let print_toks toks =
+    let rec print_tok tok = match tok with
+    | Backticks { start; count; escaped } -> Format.printf "backtick "
+    | Math_span_marks { start; count; may_open; } ->Format.printf "$ "
+    | Autolink_or_html_start { start } ->Format.printf "autolink "
+    | Link_start { start; image } ->Format.printf "link "
+    | Open_curly { start; touch_left } ->Format.printf "{ "
+    | Right_brack start -> Format.printf "] "
+    | Newline { newline = l } -> Format.printf "newline "
+    | t -> Format.printf "_ " in
+      List.iter print_tok toks ; Format.printf"\n%!"
+
   let try_full_reflink_remainder p toks line ~image ~start (* is label's [ *) =
     (* https://spec.commonmark.org/current/#full-reference-link *)
     match Match.link_label p.buf ~next_line p.i toks ~line ~start with
@@ -1738,6 +1750,11 @@ module Inline_struct = struct
          attributes p (attrs, ()) (Attributes.empty, None) last
        in
        let t = Attributes { start; next = last + 1; position ; attrs ; endline } in
+       Format.printf "Before drop_until: ";
+         print_toks toks;
+       let toks = drop_until ~start:(last + 1) toks in
+       Format.printf "After drop_until: ";
+         print_toks toks;
        (* let attrs_span = *)
        (*   Inline.Attributes_span.make *)
        (*     (Inline.Inlines ([], Meta.none)) (attrs, Meta.none) *)
@@ -1765,15 +1782,32 @@ module Inline_struct = struct
           in
           parse_tokens p text_toks text_start
         in
+        match
         if had_link && not image
         then None (* Could try to keep render *) else
-        try_link_def
-          p ~start ~start_toks ~start_line ~toks ~line ~text_last ~image text
+          try_link_def p ~start ~start_toks ~start_line ~toks ~line ~text_last
+            ~image text
+        with
+        | Some (toks, line, t, had_link) -> Some (toks, line, t, had_link)
+        | None ->
+           match
+             Match.md_attributes p.i ~next_line toks ~start:(text_last+1) ~line
+           with
+           | None -> None
+           | Some (toks, endline, attrs, last) ->
+              let toks = drop_until ~start:(last + 1) toks in
+              let (attrs, _) =
+                attributes p (attrs, ()) (Attributes.empty, None) last
+              in
+              let attrs = Inline.Attributes_span.make (Inline.Inlines (text, Meta.none)) (attrs, Meta.none) in
+              let inline = Inline.Ext_attrs (attrs, Meta.none) in
+              let t = Inline { start; inline; endline; next = last + 1 } in
+              Some (toks, endline, t, false)
 
   and first_pass p toks line =
     (* Parse inline atoms and links. Links are parsed here otherwise
        link reference data gets parsed as atoms. *)
-    let rec loop p toks line ~had_link acc = match toks with
+    let rec loop p toks line ~had_link acc = print_toks toks; match toks with
     | [] -> List.rev acc, had_link
     | Backticks { start; count; escaped } :: toks ->
         begin match try_code p toks line ~start ~count ~escaped with
