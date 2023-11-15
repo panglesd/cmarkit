@@ -343,7 +343,7 @@ let inline c = function
 | Inline.Strong_emphasis (e, _) -> strong_emphasis c e; true
 | Inline.Text (t, _) -> html_escaped_string c t; true
 | Inline.Ext_strikethrough (s, _) -> strikethrough c s; true
-| Inline.Ext_attrs as' -> attribute_span c as'; true
+| Inline.Ext_attrs (as', _) -> attribute_span c as'; true
 | Inline.Ext_math_span (ms, _) -> math_span c ms; true
 | _ -> comment c "<!-- Unknown Cmarkit inline -->"; true
 
