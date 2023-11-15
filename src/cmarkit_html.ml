@@ -130,7 +130,7 @@ let pct_encoded_string c s = buffer_add_pct_encoded_string (C.buffer c) s
 (* Rendering functions *)
 
 let add_attr c (key, value) = match value with
-  | Some value -> C.string c (" " ^ key ^ "=\"" ^ value ^ "\"");
+  | Some value -> C.string c (" " ^ key ^ "=" ^ value);
   | None -> C.string c (" " ^ key)
 
 let add_attrs c ?(include_id = true) attrs =
@@ -152,7 +152,7 @@ let add_attrs c ?(include_id = true) attrs =
   let id =
     let id = Cmarkit.Attributes.id attrs in
     match id with
-    | Some (id, _) when include_id -> ["id", Some id ]
+    | Some (id, _) when include_id -> ["id", Some ("\""^id^"\"") ]
     | _ -> []
   in
   let attrs = id @ class' @ kv_attrs in
