@@ -60,7 +60,7 @@ module Attributes = struct
       class' = List.filter (fun (c, _) -> compare class' c <> 0) t.class'
     }
 
-  (** {1 Classes}) *)
+  (** {1 Id}) *)
 
   let id t = t.id
 
@@ -69,6 +69,8 @@ module Attributes = struct
   let remove_id t = { t with id = None}
 
   (** {1 Key-value attributes}) *)
+
+  let kv_attributes t = t.kv_attributes
 
   let mem key t =
     List.exists (function ((k, _), _) -> String.equal k key) t.kv_attributes
@@ -91,22 +93,10 @@ module Attributes = struct
   let find key t =
     List.find_opt (function ((k, _), _) -> String.equal k key) t.kv_attributes
 
-  let get_all ?(include_id = true) t =
-    let id =
-      match t.id with Some (id, _) when include_id -> ["id", Some id] | _ -> []
-    in
-    let class' =
-      match t.class' with
-      | [] -> []
-      | x ->
-         let classes = x |> List.map fst |> String.concat " " in
-         [ "class", Some classes ]
-    in
-    id @ class' @
-      List.map (function
-          | ((k, _), Some (v, _)) -> (k, Some v)
-          | ((k,_), None) -> (k, None))
-        t.kv_attributes
+  let merge ~base ~new_attrs =
+    let base = match id new_attrs with None -> base | Some id -> set_id base id in
+    let base = List.fold_left add_class base (class' new_attrs) in
+    List.fold_left (fun base (k, v) -> add k v base) base (kv_attributes new_attrs)
 end
 
 let empty_attrs = Attributes.empty, None
@@ -429,9 +419,17 @@ module Inline = struct
       String.concat " "s
   end
 
+  module Attributes_span = struct
+    type nonrec t = { content : t ; attrs: Attributes.t node}
+    let make content attrs = { content ; attrs }
+    let content as' = as'.content
+    let attrs as' = as'.attrs
+  end
+
   type t +=
   | Ext_strikethrough of Strikethrough.t node
   | Ext_math_span of Math_span.t node
+  | Ext_attrs of Attributes_span.t
 
   (* Functions on inlines *)
 
@@ -1123,6 +1121,8 @@ module Inline_struct = struct
       may_open : bool;
       may_close : bool; }
 
+  type curly_marks = { start : byte_pos ; touch_left : bool }
+
   type token =
   | Autolink_or_html_start of { start : byte_pos }
   | Backticks of
@@ -1146,6 +1146,8 @@ module Inline_struct = struct
   | Right_paren of { start : byte_pos } (* Only used for closer index *)
   | Strikethrough_marks of strikethrough_marks
   | Math_span_marks of math_span_marks
+  | Open_curly of curly_marks   (* Rename to Attribute_starts *)
+  | Attributes of {start : byte_pos ; end' : byte_pos ; attrs : Attributes.t ; position : [`Standalone | `Left | `Right ] }
 
   let token_start = function
   | Autolink_or_html_start { start } | Backticks { start }
@@ -1154,6 +1156,8 @@ module Inline_struct = struct
   | Right_paren { start } -> start
   | Strikethrough_marks { start } -> start
   | Math_span_marks { start } -> start
+  | Open_curly { start } -> start
+  | Attributes { start } -> start
 
   let has_backticks ~count ~after cidx =
     Closer_index.closer_exists (Closer.Backticks count) ~after cidx
@@ -1310,6 +1314,15 @@ module Inline_struct = struct
     if not may_open && not may_close then acc, next else
     Math_span_marks { start; count; may_open; may_close } :: acc, next
 
+  let try_add_open_curly_token acc s line ~start =
+    let first = line.first and _last = line.last (* TODO *) and _char  (* TODO *)  = s.[start] in
+    let next = start + 1 in
+    let touch_left =
+      let prev_uchar = Match.prev_uchar s ~first ~before:start in
+      not (Cmarkit_data.is_unicode_whitespace prev_uchar)
+    in
+    Open_curly { start; touch_left } :: acc, next
+
   let tokenize ~exts s lines =
     (* For inlines this is where we conditionalize for extensions. All code
        paths after that no longer check for p.exts: there just won't be
@@ -1334,6 +1347,7 @@ module Inline_struct = struct
       | ')' -> Right_paren { start = k } :: acc, k + 1
       | '~' when exts -> try_add_strikethrough_marks_token acc s line ~start:k
       | '$' when exts -> try_add_math_span_marks_token acc s line ~start:k
+      | '{' when exts -> try_add_open_curly_token acc s line ~start:k
       | _ -> acc, k + 1
       in
       loop ~exts s lines line ~prev_bslash:false acc next
@@ -1676,6 +1690,61 @@ module Inline_struct = struct
         let had_link = not image && not p.nested_links in
         Some (toks, endline, t, had_link)
 
+  let attributes p (new_attrs, new_meta) (attrs, meta) last =
+    let add_attribute new_attr attrs = match new_attr with
+      | `Class rev_spans ->
+         let new_class = attr_of_rev_spans p rev_spans in
+         Attributes.add_class attrs new_class
+      | `Id rev_spans ->
+         let new_id = attr_of_rev_spans p rev_spans in
+         Attributes.set_id attrs new_id
+      | `Kv_attr (key, value) ->
+         let key = clean_raw_span p key in
+         let value = match value with
+             None -> None
+           | Some value -> Some (attr_of_rev_spans p value)
+         in
+         Attributes.add key value attrs
+    in
+    let attrs = List.fold_right add_attribute new_attrs attrs in
+    let first = p.current_char and last = p.current_line_last_char in
+    let meta =
+      let line = current_line_span p ~first ~last in
+      match meta with
+      | None -> Some(line, line)
+      | Some (first, _) -> Some (first, line)
+    in
+    (attrs, meta)
+
+
+  let try_attributes p toks line ~touch_left ~start =
+    match Match.md_attributes p.i ~next_line toks ~start ~line with
+    | None -> None
+    | Some (toks, endline, attrs, last) ->
+       let touch_right =
+         let next_uchar = Match.next_uchar p.i ~last:endline.last ~after:last in
+         not (Cmarkit_data.is_unicode_whitespace next_uchar)
+       in
+       if touch_left && touch_right then None else
+       let position =
+         match touch_left, touch_right with
+         | false, false -> `Standalone
+         | true, false -> `Left
+         | false, true -> `Right
+         | true, true -> assert false
+       in
+       let attrs, meta =
+         attributes p (attrs, ()) (Attributes.empty, None) last
+       in
+       let t = Attributes { start; end' = last; position ; attrs } in
+       (* let attrs_span = *)
+       (*   Inline.Attributes_span.make *)
+       (*     (Inline.Inlines ([], Meta.none)) (attrs, Meta.none) *)
+       (* in *)
+       (* let inline = Inline.Ext_attrs attrs_span in *)
+       (* let t = Inline {start ; inline ; endline ; next = last+1} in *)
+       Some (toks, endline, t)
+
   (* The following sequence of mutually recursive functions define
      inline parsing. We have three passes over a paragraph's token
      list see the [parse_tokens] function below. *)
@@ -1725,6 +1794,12 @@ module Inline_struct = struct
         begin match try_link p toks line ~image ~start with
         | None -> loop p toks line ~had_link acc
         | Some (toks, line, t, had_link) ->
+            loop p toks line ~had_link (t :: acc)
+        end
+    | Open_curly { start; touch_left } :: toks ->
+        begin match try_attributes p toks line ~touch_left ~start with
+        | None -> loop p toks line ~had_link acc
+        | Some (toks, line, t) ->
             loop p toks line ~had_link (t :: acc)
         end
     | Right_brack start :: toks -> loop p toks line ~had_link acc
@@ -1884,7 +1959,19 @@ module Inline_struct = struct
     (* Only [Inline] and [Newline] tokens remain. We fold over them to
        convert them to [inline] values and [Break]s. [Text] inlines
        are created for data between them. *)
-    let rec loop toks line acc k = match toks with
+    let add_attr attrs = function
+      (* | Inline.Ext_attrs span :: q -> *)
+      (*    let content = Inline.Attributes_span.content span in *)
+      (*    let old_attrs = Inline.Attributes_span.attrs span in *)
+      (*    let new_attrs = Attributes.merge ~base:old_attrs ~new_attrs:attrs in *)
+      (*    let t = Inline.Attributes_span.make content new_attrs in *)
+      (*    Inline.Ext_attrs t :: q *)
+      | i :: q ->
+         let t = Inline.Attributes_span.make i (attrs, Meta.none) in
+         Inline.Ext_attrs t :: q
+      | [] -> []
+    in
+    let rec loop ?attrs toks line acc k = match toks with
     | [] ->
         List.rev (try_add_text_inline p line ~first:k ~last:line.last acc)
     | Newline { start; break_type; newline } :: toks ->
@@ -1898,8 +1985,12 @@ module Inline_struct = struct
         | i -> i :: acc
         in
         loop toks endline acc next
+    | Attributes { start; end'; attrs; position } :: toks ->
+        let acc = try_add_text_inline p line ~first:k ~last:(start - 1) acc in
+        let acc = add_attr attrs acc in
+        loop toks line (* TODO *) acc end'
     | (Backticks _ | Autolink_or_html_start _ | Link_start _ | Right_brack _
-      | Emphasis_marks _ | Right_paren _ | Strikethrough_marks _
+      | Emphasis_marks _ | Right_paren _ | Strikethrough_marks _ | Open_curly _ 
       | Math_span_marks _) :: _ ->
         assert false
     in
@@ -2003,7 +2094,7 @@ module Inline_struct = struct
           (make_col p is, (blanks_before, after)), toks', k
       end
   | (Backticks _ | Autolink_or_html_start _ | Link_start _ | Right_brack _
-    | Emphasis_marks _ | Right_paren _ | Strikethrough_marks _
+    | Emphasis_marks _ | Right_paren _ | Strikethrough_marks _ | Open_curly _ | Attributes _
     | Math_span_marks _ | Newline _ ) :: _ ->
       assert false
 
@@ -2023,7 +2114,7 @@ module Inline_struct = struct
           parse_cols p line (col :: acc) toks k
       end
   | (Backticks _ | Autolink_or_html_start _ | Link_start _ | Right_brack _
-    | Emphasis_marks _ | Right_paren _ | Strikethrough_marks _
+    | Emphasis_marks _ | Right_paren _ | Strikethrough_marks _ | Open_curly _ | Attributes _
     | Math_span_marks _ | Newline _ ) :: _ ->
       assert false
 
@@ -2544,14 +2635,15 @@ module Block_struct = struct
   | `Unordered c0, `Unordered c1 when Char.equal c0 c1 -> true
   | _ -> false
 
-  let rec add_open_blocks_with_line_class p ~indent_start ~indent attrs bs : _ -> t list = function
-    | Match.Blank_line ->
-       let bs =
-         if attrs = empty_attrs then bs else
+  let rec add_open_blocks_with_line_class p ~indent_start ~indent attrs bs =
+  function
+  | Match.Blank_line ->
+     let bs =
+       if attrs = empty_attrs then bs else
        let attrs, meta = attrs in
        Ext_attributes (attrs, meta) :: bs
-       in
-       blank_line p :: bs
+     in
+     blank_line p :: bs
   | Indented_code_block_line -> indented_code_block p attrs :: bs
   | Block_quote_line ->
      Block_quote ((indent, add_open_blocks p empty_attrs []), attrs) :: bs
