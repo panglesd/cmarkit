@@ -933,7 +933,7 @@ module Inline : sig
   module Attributes_span : sig
     type inline := t
 
-    type nonrec t = { content : t ; attrs: Attributes.t node}
+    type t
 
     val make : inline -> Attributes.t node -> t
     val content : t -> inline
