@@ -147,7 +147,7 @@ let add_attrs c ?(include_id = true) attrs =
     let class' = List.map (fun (c, _) -> c) class' in
     match class' with
     | [] -> []
-    | _ -> ["class", Some (String.concat " " class') ]
+    | _ -> ["class", Some ("\"" ^ String.concat " " class' ^ "\"") ]
   in
   let id =
     let id = Cmarkit.Attributes.id attrs in
@@ -289,14 +289,18 @@ let link c l = match Inline.Link.reference_definition (C.get_defs c) l with
 | Some (Link_definition.Def ((ld, (attributes, _)), _)) ->
     let link, title = link_dest_and_title c ld in
     C.string c "<a href=\""; pct_encoded_string c link;
+    C.string c "\"";
+    add_attrs c ~include_id:false attributes;
     let id = Attributes.id attributes in
     (match id with
        None -> ()
      | Some (id, _) ->
-        C.string c "\" id=\"";
-        html_escaped_string c id);
-    if title <> "" then (C.string c "\" title=\""; html_escaped_string c title);
-    C.string c "\">"; C.inline c (Inline.Link.text l); C.string c "</a>"
+        C.string c " id=\"";
+        html_escaped_string c id;
+        C.string c "\"";);
+    if title <> "" then
+      (C.string c " title=\""; html_escaped_string c title; C.string c "\"");
+    C.string c ">"; C.inline c (Inline.Link.text l); C.string c "</a>"
 | Some (Block.Footnote.Def ((fn, todo), _)) -> link_footnote c l fn
 | None -> C.inline c (Inline.Link.text l); comment_undefined_label c l
 | Some _ -> C.inline c (Inline.Link.text l); comment_unknown_def_type c l
