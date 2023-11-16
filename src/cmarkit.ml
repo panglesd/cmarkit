@@ -3382,6 +3382,9 @@ module Mapper = struct
       | Ext_strikethrough (s, meta) ->
           let* inline = map_inline m s in
           Some (Ext_strikethrough (inline, meta))
+      | Ext_attrs ({ content; attrs }, meta) ->
+          let* content = map_inline m content in
+          Some (Ext_attrs ({content ; attrs}, meta))
       | ext -> m.inline_ext_default m ext
 
   let rec map_block m b = match m.block m b with
