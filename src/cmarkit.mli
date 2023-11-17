@@ -610,7 +610,7 @@ module Link_definition : sig
 
   val make :
     ?layout:layout -> ?defined_label:Label.t option -> ?label:Label.t ->
-    ?dest:string node -> ?title:Block_line.tight list -> unit -> t
+    dest:string node -> ?title:Block_line.tight list -> unit -> t
   (** [make ()] is a link reference with given parameters. If [dest] is
       given and [layout] is not, the latter is computed with
       {!layout_for_dest}. [label] is a label if the link is defined
@@ -633,7 +633,7 @@ module Link_definition : sig
       it's a link definition for an inline link or the resolver deleted
       the label definition. *)
 
-  val dest : t -> string node option
+  val dest : t -> string node
   (** [dest ld] is the link destination of [ld]. [None] means
       there was no destination. CommonMark renders that as an empty
       [href] in HTML. *)

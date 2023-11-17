@@ -321,6 +321,9 @@ type line_type =
 | Ext_table_row of last
 | Ext_footnote_label of rev_spans * last * string
 | Ext_attributes of attributes list * first * last
+| Ext_attributes_label of
+    rev_spans (* label content *) * string (* label key *)
+    * attributes list * first * last
 | Nomatch (* built-in [None] to avoid option allocs *)
 
 val thematic_break : string -> last:byte_pos -> start:byte_pos -> line_type
