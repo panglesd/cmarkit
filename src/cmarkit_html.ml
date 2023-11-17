@@ -537,7 +537,8 @@ let block c = function
 | Block.Ext_standalone_attributes (attrs, _) -> standalone_attributes c attrs; true
 | Block.Blank_line _
 | Block.Link_reference_definition _
-| Block.Ext_footnote_definition _ -> true
+| Block.Ext_footnote_definition _
+| Block.Ext_attribute_definition _ -> true
 | _ -> comment c "Unknown Cmarkit block"; C.byte c '\n'; true
 
 (* XHTML rendering *)
