@@ -232,9 +232,9 @@ let strong_emphasis c e =
 
 let link_dest_and_title c ld =
   let dest = match Link_definition.dest ld with
-  | None -> ""
-  | Some (link, _) when safe c && Inline.Link.is_unsafe link -> ""
-  | Some (link, _) -> link
+  (* | None -> "" *)
+  | (* Some *) (link, _) when safe c && Inline.Link.is_unsafe link -> ""
+  | (* Some *) (link, _) -> link
   in
   let title = match Link_definition.title ld with
   | None -> ""

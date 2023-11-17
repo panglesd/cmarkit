@@ -211,14 +211,14 @@ let link_definition c ld =
   let layout = Link_definition.layout ld in
   block_lines c layout.before_dest;
   begin match Link_definition.dest ld with
-  | None -> ()
-  | Some (dest, _) ->
+  (* | None -> () *)
+  | (* Some *) (dest, _) ->
       if layout.angled_dest
       then (C.byte c '<'; escaped_string c esc_angles dest; C.byte c '>')
       else (escaped_string c esc_parens dest)
   end;
   if layout.after_dest = [] &&
-     Option.is_some (Link_definition.dest ld) &&
+     (* Option.is_some (Link_definition.dest ld) && *)
      Option.is_some (Link_definition.title ld)
   then C.byte c ' ' (* at least a space is needed *);
   block_lines c layout.after_dest;

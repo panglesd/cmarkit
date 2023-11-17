@@ -37,7 +37,7 @@ let link_definition ~indent ppf ld =
   | None -> () | Some l -> cut ppf (); defined_label ~indent ppf l
   in
   let dest ppf = function
-  | None -> () | Some (_, m) -> cut ppf (); loc "Destination" ~indent ppf m
+  | (* None -> () | Some *) (_, m) -> cut ppf (); loc "Destination" ~indent ppf m
   in
   let title ppf = function
   | None -> () | Some ls -> cut ppf (); tight_block_lines "Title" ~indent ppf ls

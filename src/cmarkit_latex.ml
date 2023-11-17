@@ -143,7 +143,7 @@ let emphasis c e =
 
 let link c l = match Inline.Link.reference_definition (C.get_defs c) l with
 | Some (Link_definition.Def ((ld, _), _)) ->
-    let d = match Link_definition.dest ld with None -> "" | Some (u, _) -> u in
+    let d = match Link_definition.dest ld with (* None -> "" | Some *) (u, _) -> u in
     let dlen = String.length d in
     begin match dlen > 0 && d.[0] = '#' with
     | true ->
@@ -175,7 +175,7 @@ let link c l = match Inline.Link.reference_definition (C.get_defs c) l with
 let image c i = match Inline.Link.reference_definition (C.get_defs c) i with
 | Some (Link_definition.Def ((ld, _), _)) ->
     let d = match Link_definition.dest ld with
-    | None -> "" | Some (u, _) -> u
+    (* | None -> "" | Some *) (u, _) -> u
     in
     let is_external d =
       String.starts_with ~prefix:"http:" d ||

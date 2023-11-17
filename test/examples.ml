@@ -29,9 +29,9 @@ let media_link c l =
   match Cmarkit.Inline.Link.reference_definition defs l with
   | Some Cmarkit.Link_definition.Def ((ld, _), _) ->
       let start_tag = match Cmarkit.Link_definition.dest ld with
-      | Some (src, _) when is_video src -> Some ("<video", src)
-      | Some (src, _) when is_audio src -> Some ("<audio", src)
-      | None | Some _ -> None
+      | (* Some *) (src, _) when is_video src -> Some ("<video", src)
+      | (* Some *) (src, _) when is_audio src -> Some ("<audio", src)
+      | (* None | Some *) _ -> None
       in
       begin match start_tag with
       | None -> false (* let the default HTML renderer handle that *)

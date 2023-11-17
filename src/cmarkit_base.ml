@@ -1086,6 +1086,9 @@ type line_type =
 | Ext_table_row of last
 | Ext_footnote_label of rev_spans * last * string
 | Ext_attributes of attributes list * first * last
+| Ext_attributes_label of
+    rev_spans (* label content *) * string (* label key *)
+    * attributes list * first * last
 | Nomatch
 
 let thematic_break s ~last ~start =
@@ -1385,14 +1388,36 @@ let md_attributes ~next_line s lines ~line ~start:attr_start =
   in
   loop ~first_iter:true ~next_line s lines ~line [] ~start
 
+let ext_attribute_label buf s ~line_pos ~last ~start =
+  if start + 1 > last || s.[start] <> '['
+  then Nomatch else
+  let rbrack = first_non_escaped_char ']' s ~last ~start:(start + 2) in
+  let colon = rbrack + 1 in
+  if colon > last || s.[colon] <> ':' || colon - start + 1 < 5 then Nomatch else
+  (* Get the normalized label *)
+  let line = { line_pos; first = start; last } in
+  let next_line () = None in
+  match link_label buf ~next_line s () ~line ~start with
+  | None -> (* should not happen *) Nomatch
+  | Some (_, _, rev_spans, last, key) ->
+     let start = last + 1 in
+     match md_attributes ~next_line s () ~line ~start with
+     | None -> Nomatch
+     | Some (_, _, attrs, attr_end) ->
+      let next = first_non_blank s ~last ~start:(attr_end + 1) in
+      if next >= last then
+        Ext_attributes_label (rev_spans, key, attrs, start, attr_end)
+      else Nomatch
+      (* Ext_footnote_label (rev_spans, colon, key) *)
+
 let ext_attributes s ~last ~start =
   let line = { line_pos = Textloc.line_pos_none; first = start; last } in
   let next_line () = None in
   match md_attributes ~next_line s () ~line ~start with
   | None -> Nomatch
-  | Some (_, _, spans, attr_end) ->
+  | Some (_, _, attrs, attr_end) ->
       let next = first_non_blank s ~last ~start:(attr_end + 1) in
-      if next >= last then Ext_attributes (spans, start, attr_end) else Nomatch
+      if next >= last then Ext_attributes (attrs, start, attr_end) else Nomatch
 
 let could_be_link_reference_definition s ~last ~start =
   (* https://spec.commonmark.org/current/#link-reference-definition *)

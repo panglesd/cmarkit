@@ -219,12 +219,12 @@ module Link_definition = struct
     { layout : layout;
       label : Label.t option;
       defined_label : Label.t option;
-      dest : string node option;
+      dest : string node;
       title : Block_line.tight list option; }
 
-  let make ?layout ?defined_label ?label ?dest ?title () =
-    let layout = match dest with
-    | None -> default_layout | Some (d, _) -> layout_for_dest d
+  let make ?layout ?defined_label ?label ~dest ?title () =
+    let layout = (* match dest with *)
+    (* | None -> default_layout | Some (d, _) -> *) layout_for_dest (fst dest)
     in
     let defined_label = match defined_label with None -> label | Some d -> d in
     { layout; label; defined_label; dest; title }
@@ -1576,11 +1576,11 @@ module Inline_struct = struct
     | Some (toks, line, before_dest, start) ->
         let toks, line, angled_dest, dest, start =
           match Match.link_destination p.i ~last:line.last ~start with
-          | None -> toks, line, false, None, start
+          | None -> toks, line, false, ("", Meta.none), start
           | Some (angled, first, last) ->
               let dest = clean_unesc_unref_span p { line with first; last } in
               let next = if angled then last + 2 else last + 1 in
-              toks, line, angled, Some dest, next
+              toks, line, angled, dest, next
         in
         let toks, line, after_dest, title_open_delim, title, start =
           match first_non_blank_over_nl p toks line ~start with
@@ -2266,11 +2266,14 @@ module Block_struct = struct
   | Linkref_def of Link_definition.t attributed node
   | Paragraph of paragraph struct_attributed
   | Thematic_break of
-      (Layout.indent * line_span (* including trailing blanks *)) struct_attributed
+      (Layout.indent * line_span (* including trailing blanks *))
+        struct_attributed
   | Ext_table of
       (Layout.indent * (line_span * line_span (* trail blanks *)) list)
         struct_attributed
   | Ext_footnote of
+      (Layout.indent * (Label.t * Label.t option) * t list) struct_attributed
+  | Ext_attribute_label of
       (Layout.indent * (Label.t * Label.t option) * t list) struct_attributed
   | Ext_attributes of struct_attrs
 
@@ -2401,7 +2404,7 @@ module Block_struct = struct
         | Some (angled, first, last) ->
             let dest = clean_unesc_unref_span p { line with first; last } in
             let next = if angled then last + 2 else last + 1 in
-            angled, Some dest, next, { line with last = last }
+            angled, dest, next, { line with last = last }
       in
       let lines, after_dest, title_open_delim, title, after_title, meta_last =
         match first_non_blank_over_nl ~next_line p lines line ~start with
@@ -2621,7 +2624,6 @@ module Block_struct = struct
           if r <> Nomatch then r else
           Paragraph_line
       | '{' when p.exts ->
-          (* let line_pos = p.current_line_pos in *)
           let r = Match.ext_attributes p.i ~last ~start in
           if r <> Nomatch then r else
             Paragraph_line
@@ -2668,6 +2670,9 @@ module Block_struct = struct
      footnote p ~indent ~last rev_spans key attrs :: bs
   | Ext_attributes (new_attrs, first, last) ->
      attributes p (new_attrs, Some (first, last)) attrs last :: bs
+  | Ext_attributes_label (new_attrs, first, last) ->
+     attributes_label p (new_attrs, Some (first, last)) attrs last :: bs
+     (* failwith "not implemented" *)
   | Setext_underline_line _ | Nomatch ->
       (* This function should be called with a line type that comes out
          of match_line_type ~no_setext:true *)
@@ -2679,6 +2684,17 @@ module Block_struct = struct
     add_open_blocks_with_line_class p ~indent_start ~indent attrs bs ltype
 
   and footnote p ~indent ~last rev_spans key attrs =
+    let label = Inline_struct.label_of_rev_spans p ~key rev_spans in
+    let defined_label = match def_label p label with
+    | None -> None
+    | Some def as l -> set_label_def p def (Block.Footnote.stub label l); l
+    in
+    accept_cols p ~count:(last - p.current_char + 1);
+    Ext_footnote
+      ((indent, (label, defined_label), add_open_blocks p empty_attrs []),
+       attrs)
+
+  and attributes_label p ~indent ~last rev_spans key attrs =
     let label = Inline_struct.label_of_rev_spans p ~key rev_spans in
     let defined_label = match def_label p label with
     | None -> None
@@ -2761,7 +2777,7 @@ module Block_struct = struct
     | Html_block_line `End_blank_7
     | Indented_code_block_line
     | Ext_table_row _ | Ext_footnote_label _ | Ext_attributes _
-    | Paragraph_line ->
+    | Ext_attributes_label _ | Paragraph_line ->
         add_paragraph_line p ~indent_start par attrs bs
     | List_marker_line m when not (list_marker_can_interrupt_paragraph p m) ->
         add_paragraph_line p ~indent_start par attrs bs
