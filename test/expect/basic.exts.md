@@ -174,3 +174,53 @@ This is an empty table with three columns:
 
  | |||
 
+## Attributes
+
+### Block attributes
+
+{#my-id}
+This is a paragraph with the `my-id` is.
+
+{#my-id #your-id}
+I have `your-id`, not mine
+
+{#my-id #your-id id="his-id"}
+I have `his-id`, not mine, not yours
+
+{.blue}
+#### This is a title with the `.blue` class
+
+{key=value}
+- This is an item where `key` has value `value`.
+- It is not possible to attach attributes to list items... yet
+
+{key="value" flag .my-class #my-id}
+I'm a paragraph with many attributes
+
+{key="value" flag .my-class #my-id}
+{key2="value2" flag2 .my-class2}
+I have much more attribute than the previous one, since they stack
+
+{#my-id}
+{#your-id}
+I have your id
+
+{.class1 class="class2 class3" class=class4}
+I have a lot of class: `class1`, `class2`, `class3` and `class4`
+
+{.class1 class="class2 class3"}
+{class=class4}
+Me too!
+
+{       #space-do-not-matter       }
+But spaceships matter.
+
+{key="a value with a }"}
+Some word
+
+{introducing standalone attributes}
+
+{.standalone #attributes}
+{also="stack"}
+
+{.I am} not a block attribute due to 
