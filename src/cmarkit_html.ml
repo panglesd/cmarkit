@@ -302,6 +302,8 @@ let link c l = match Inline.Link.reference_definition (C.get_defs c) l with
       (C.string c " title=\""; html_escaped_string c title; C.string c "\"");
     C.string c ">"; C.inline c (Inline.Link.text l); C.string c "</a>"
 | Some (Block.Footnote.Def ((fn, todo), _)) -> link_footnote c l fn
+| Some (Block.Attribute_definition.Def ((attrs, _), _)) ->
+   C.inline c (Inline.Ext_attrs ((Inline.Attributes_span.make (Inline.Link.text l) (Block.Attribute_definition.attrs attrs)), Meta.none))
 | None -> C.inline c (Inline.Link.text l); comment_undefined_label c l
 | Some _ -> C.inline c (Inline.Link.text l); comment_unknown_def_type c l
 

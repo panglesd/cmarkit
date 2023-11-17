@@ -26,83 +26,6 @@ type line_span = Match.line_span =
 
 type 'a node = 'a * Meta.t
 
-module Attributes = struct
-
-  type t = {
-      class' : string node list;
-      id : string node option;
-      kv_attributes : (key node * value node option) list
-    }
-  (** The type for abstract syntax tree node attributes. *)
-
-  and key = string
-  (** The type for attributes keys. *)
-
-  and value = string
-  (** The type for attributes values. *)
-
-  let empty = {class' = [] ; id = None ; kv_attributes = []}
-  (** [empty] is for when there is no attributes, no class, no id. *)
-
-  let is_empty t = t.class' = [] && t.id = None && t.kv_attributes = []
-
-  let make ?(kv_attributes = []) ?(id = None) ?(class' = []) () =
-    {class' ; id ; kv_attributes}
-
-  (** {1 Classes}) *)
-
-  let class' t = t.class'
-
-  let add_class t class' = { t with class' = class' :: t.class'}
-
-  let remove_class t class' =
-    { t with
-      class' = List.filter (fun (c, _) -> compare class' c <> 0) t.class'
-    }
-
-  (** {1 Id}) *)
-
-  let id t = t.id
-
-  let set_id t id = { t with id = Some id}
-
-  let remove_id t = { t with id = None}
-
-  (** {1 Key-value attributes}) *)
-
-  let kv_attributes t = t.kv_attributes
-
-  let mem key t =
-    List.exists (function ((k, _), _) -> String.equal k key) t.kv_attributes
-
-  let add (key, meta) value t =
-    match key, value with
-    | "id", Some value -> set_id t value
-    | "class", Some (value, meta) ->
-       let values = match value.[0] with
-         | '"' ->
-            let value = String.sub value 1 (String.length value - 2) in
-            String.split_on_char ' ' value
-         | _ -> [ value ]
-       in
-       List.fold_left (fun t value -> add_class t (value, meta)) t values
-    | _ ->
-       let kv_attributes = ((key, meta), value) :: t.kv_attributes in
-       { t with kv_attributes }
-
-  let find key t =
-    List.find_opt (function ((k, _), _) -> String.equal k key) t.kv_attributes
-
-  let merge ~base ~new_attrs =
-    let base = match id new_attrs with None -> base | Some id -> set_id base id in
-    let base = List.fold_left add_class base (class' new_attrs) in
-    List.fold_left (fun base (k, v) -> add k v base) base (kv_attributes new_attrs)
-end
-
-let empty_attrs = Attributes.empty, None
-
-type 'a attributed = 'a * Attributes.t node
-
 module Block_line = struct
   let _list_of_string flush s = (* cuts [s] on newlines *)
     let rec loop s acc max start k =
@@ -195,6 +118,84 @@ module Label = struct
   | `Def (Some _, k) -> None
   | `Ref (_, _, k) -> k
 end
+
+module Attributes = struct
+
+  type t = {
+      class' : string node list;
+      id : string node option;
+      kv_attributes : (key node * value node option) list
+    }
+  (** The type for abstract syntax tree node attributes. *)
+
+  and key = string
+  (** The type for attributes keys. *)
+
+  and value = string
+  (** The type for attributes values. *)
+
+  let empty = {class' = [] ; id = None ; kv_attributes = []}
+  (** [empty] is for when there is no attributes, no class, no id. *)
+
+  let is_empty t = t.class' = [] && t.id = None && t.kv_attributes = []
+
+  let make ?(kv_attributes = []) ?(id = None) ?(class' = []) () =
+    {class' ; id ; kv_attributes}
+
+  (** {1 Classes}) *)
+
+  let class' t = t.class'
+
+  let add_class t class' = { t with class' = class' :: t.class'}
+
+  let remove_class t class' =
+    { t with
+      class' = List.filter (fun (c, _) -> compare class' c <> 0) t.class'
+    }
+
+  (** {1 Id}) *)
+
+  let id t = t.id
+
+  let set_id t id = { t with id = Some id}
+
+  let remove_id t = { t with id = None}
+
+  (** {1 Key-value attributes}) *)
+
+  let kv_attributes t = t.kv_attributes
+
+  let mem key t =
+    List.exists (function ((k, _), _) -> String.equal k key) t.kv_attributes
+
+  let add (key, meta) value t =
+    match key, value with
+    | "id", Some value -> set_id t value
+    | "class", Some (value, meta) ->
+       let values = match value.[0] with
+         | '"' ->
+            let value = String.sub value 1 (String.length value - 2) in
+            String.split_on_char ' ' value
+         | _ -> [ value ]
+       in
+       List.fold_left (fun t value -> add_class t (value, meta)) t values
+    | _ ->
+       let kv_attributes = ((key, meta), value) :: t.kv_attributes in
+       { t with kv_attributes }
+
+  let find key t =
+    List.find_opt (function ((k, _), _) -> String.equal k key) t.kv_attributes
+
+  let merge ~base ~new_attrs =
+    let base = match id new_attrs with None -> base | Some id -> set_id base id in
+    let base = List.fold_left add_class base (class' new_attrs) in
+    List.fold_left (fun base (k, v) -> add k v base) base (kv_attributes new_attrs)
+
+end
+
+let empty_attrs = Attributes.empty, None
+
+type 'a attributed = 'a * Attributes.t node
 
 module Link_definition = struct
   type layout =
@@ -822,11 +823,35 @@ module Block = struct
          Meta.none)
   end
 
+  module Attribute_definition = struct
+
+    type t =
+      { indent : Layout.indent;
+        label : Label.t;
+        attrs : Attributes.t node }
+
+    let indent t  = t.indent
+
+    let label t  = t.label
+
+    let attrs t  = t.attrs
+
+
+    let make ~indent label attrs =
+      { indent;
+        label;
+        attrs }
+
+    type Label.def += Def of (t * Attributes.t) node
+
+  end
+
   type t +=
   | Ext_math_block of Code_block.t attributed node
   | Ext_table of Table.t attributed node
   | Ext_footnote_definition of Footnote.t attributed node
   | Ext_standalone_attributes of Attributes.t node
+  | Ext_attribute_definition of Attribute_definition.t attributed node
   (* Functions on blocks *)
 
   let err_unknown = "Unknown Cmarkit.Block.t type extension"
@@ -891,6 +916,8 @@ module Block = struct
         | Some def -> Label.Map.add (Label.key def) (Footnote.Def node) init
         in
         defs ~ext ~init (Footnote.block fn)
+    | Ext_attribute_definition (((fn, _), _)) ->
+       init                       (* TODO *)
     | b -> ext init b
 end
 
@@ -982,6 +1009,7 @@ let parser
 let find_label_defining_key p key = match Label.Map.find_opt key p.defs with
 | Some (Link_definition.Def ((ld, _), _)) -> Link_definition.defined_label ld
 | Some (Block.Footnote.Def ((fn, _), _)) -> Block.Footnote.defined_label fn
+| Some (Block.Attribute_definition.Def (({ label; attrs }, _), _)) -> Some label
 | None -> None
 | _ -> assert false
 
@@ -2274,7 +2302,7 @@ module Block_struct = struct
   | Ext_footnote of
       (Layout.indent * (Label.t * Label.t option) * t list) struct_attributed
   | Ext_attribute_label of
-      (Layout.indent * (Label.t * Label.t option) * t list) struct_attributed
+      (Layout.indent * Label.t * Attributes.t node) struct_attributed
   | Ext_attributes of struct_attrs
 
   and list_item =
@@ -2560,7 +2588,8 @@ module Block_struct = struct
   | Ext_footnote ((i, l, blocks), attrs) :: bs ->
      close_footnote p i l blocks attrs bs
   | (Thematic_break _ | Heading _ | Blank_line _ | Linkref_def _
-    | Ext_table _ | Ext_attributes _ ) :: _ | [] as bs -> bs
+    | Ext_table _ | Ext_attributes _ | Ext_attribute_label _ ) :: _ | [] as bs
+    -> bs
 
   (* Adding lines to blocks *)
 
@@ -2622,6 +2651,8 @@ module Block_struct = struct
           let line_pos = p.current_line_pos in
           let r = Match.ext_footnote_label p.buf p.i ~line_pos ~last ~start in
           if r <> Nomatch then r else
+          let r = Match.ext_attribute_label p.buf p.i ~line_pos ~last ~start in
+          if r <> Nomatch then r else
           Paragraph_line
       | '{' when p.exts ->
           let r = Match.ext_attributes p.i ~last ~start in
@@ -2670,8 +2701,8 @@ module Block_struct = struct
      footnote p ~indent ~last rev_spans key attrs :: bs
   | Ext_attributes (new_attrs, first, last) ->
      attributes p (new_attrs, Some (first, last)) attrs last :: bs
-  | Ext_attributes_label (new_attrs, first, last) ->
-     attributes_label p (new_attrs, Some (first, last)) attrs last :: bs
+  | Ext_attributes_label (rev_span, key, new_attrs, first, last) ->
+     attributes_label ~indent ~last p rev_span key (new_attrs, Some (first, last)) attrs last :: bs
      (* failwith "not implemented" *)
   | Setext_underline_line _ | Nomatch ->
       (* This function should be called with a line type that comes out
@@ -2694,16 +2725,32 @@ module Block_struct = struct
       ((indent, (label, defined_label), add_open_blocks p empty_attrs []),
        attrs)
 
-  and attributes_label p ~indent ~last rev_spans key attrs =
+  and attributes_label p ~indent ~last rev_spans key (new_attrs, new_meta) (attrs, meta) last  =
     let label = Inline_struct.label_of_rev_spans p ~key rev_spans in
-    let defined_label = match def_label p label with
-    | None -> None
-    | Some def as l -> set_label_def p def (Block.Footnote.stub label l); l
+    let add_attribute new_attr attrs = match new_attr with
+      | `Class rev_spans ->
+         let new_class = Inline_struct.attr_of_rev_spans p rev_spans in
+         Attributes.add_class attrs new_class
+      | `Id rev_spans ->
+         let new_id = Inline_struct.attr_of_rev_spans p rev_spans in
+         Attributes.set_id attrs new_id
+      | `Kv_attr (key, value) ->
+         let key = clean_raw_span p key in
+         let value = match value with
+             None -> None
+           | Some value -> Some (Inline_struct.attr_of_rev_spans p value)
+         in
+         Attributes.add key value attrs
     in
-    accept_cols p ~count:(last - p.current_char + 1);
-    Ext_footnote
-      ((indent, (label, defined_label), add_open_blocks p empty_attrs []),
-       attrs)
+    let new_attrs =
+      List.fold_right add_attribute new_attrs Attributes.empty, Meta.none
+    in
+    let ad = ({ Block.Attribute_definition.indent; label; attrs = new_attrs }, attrs), Meta.none in
+    set_label_def p label (Block.Attribute_definition.Def ad);
+    (* accept_cols p ~count:(last - p.current_char + 1); *)
+    Ext_attribute_label
+      ((indent, label, new_attrs),
+       (attrs, meta))
 
   and attributes p (new_attrs, new_meta) (attrs, meta) last =
     let add_attribute new_attr attrs = match new_attr with
@@ -2982,7 +3029,10 @@ module Block_struct = struct
 
   and add_line p = function
   | Paragraph (par, attrs) :: bs -> try_add_to_paragraph p par attrs bs
-  | ((Thematic_break _ | Heading _ | Blank_line _ | Linkref_def _) :: _)
+  | ((Thematic_break _ | Heading _ | Blank_line _ | Linkref_def _
+      | Ext_attribute_label _
+     (* TODO: attribute labels should be added when closing  paragraph  *))
+     :: _)
   | [] as bs -> add_open_blocks p empty_attrs bs
   | List (list, attrs) :: bs -> try_add_to_list_item p list attrs bs
   | Code_block ((`Indented ls), attrs) :: bs ->
@@ -2995,6 +3045,7 @@ module Block_struct = struct
   | Ext_table ((ind, rows), attrs) :: bs -> try_add_to_table p ind rows attrs bs
   | Ext_footnote ((i, l, blocks), attrs) :: bs ->
      try_add_to_footnote p i l blocks attrs bs
+
   | Ext_attributes attrs :: bs -> add_open_blocks p attrs bs
 
   (* Parsing *)
@@ -3293,6 +3344,16 @@ and block_struct_to_standalone_attrs p attrs =
   let attrs = block_struct_to_attr p attrs in
   Block.Ext_standalone_attributes attrs
 
+and block_struct_to_attribute_definition p indent label new_attrs attrs
+  =
+  let meta = Meta.none (* TODO *) in
+  let attrs = block_struct_to_attr p attrs in
+  let fn =
+    ({ Block.Attribute_definition.indent; label; attrs = new_attrs }, attrs),
+    meta
+  in
+  Block.Ext_attribute_definition fn
+
 and block_struct_to_block p = function
 | Block_struct.Block_quote ((ind, bs), attrs) ->
    block_struct_to_block_quote p ind bs attrs
@@ -3309,6 +3370,8 @@ and block_struct_to_block p = function
 | Ext_footnote ((i, labels, bs), attrs) ->
     block_struct_to_footnote_definition p i labels bs attrs
 | Ext_attributes attrs -> block_struct_to_standalone_attrs p attrs
+| Ext_attribute_label ((indent, label, new_attrs), attrs) ->
+   block_struct_to_attribute_definition p indent label new_attrs attrs
 
 let block_struct_to_doc p (doc, meta) =
   match List.rev_map (block_struct_to_block p) doc with

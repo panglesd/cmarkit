@@ -1360,12 +1360,32 @@ module Block : sig
     (** A label definition for footnotes. *)
   end
 
+  module Attribute_definition : sig
+
+    type t =
+      { indent : Layout.indent;
+        label : Label.t;
+        attrs : Attributes.t node }
+
+    val indent : t -> Layout.indent
+
+    val label : t -> Label.t
+
+    val attrs : t -> Attributes.t node
+
+    val make : indent:int -> Label.t -> Attributes.t node -> t
+
+    type Label.def += Def of (t * Attributes.t) node (** *)
+    (** A label definition for attributes. *)
+  end
+
   type t +=
   | Ext_math_block of Code_block.t attributed node
     (** {{!Cmarkit.ext_math_display}display math}*)
   | Ext_table of Table.t attributed node (** *)
   | Ext_footnote_definition of Footnote.t attributed node (** *)
   | Ext_standalone_attributes of Attributes.t node (** *)
+  | Ext_attribute_definition of Attribute_definition.t attributed node (** *)
   (** The supported block extensions. These blocks are only parsed when
       {!Doc.of_string} is called with [strict:false]. *)
 
