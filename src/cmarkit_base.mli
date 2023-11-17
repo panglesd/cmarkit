@@ -379,6 +379,10 @@ val ext_footnote_label :
     \[[start];[last]\]. The returned position is the rightmost [:].
     This remains on the same line. *)
 
+val ext_attribute_label :
+  Buffer.t -> string -> line_pos:Textloc.line_pos -> last:byte_pos ->
+  start:byte_pos -> line_type
+
 val md_attributes:
   next_line:'a next_line ->
   string ->

@@ -1391,16 +1391,17 @@ let md_attributes ~next_line s lines ~line ~start:attr_start =
 let ext_attribute_label buf s ~line_pos ~last ~start =
   if start + 1 > last || s.[start] <> '['
   then Nomatch else
-  let rbrack = first_non_escaped_char ']' s ~last ~start:(start + 2) in
+  let rbrack = first_non_escaped_char ']' s ~last ~start:(start + 1) in
   let colon = rbrack + 1 in
-  if colon > last || s.[colon] <> ':' || colon - start + 1 < 5 then Nomatch else
+  if colon > last || s.[colon] <> ':' || colon - start + 1 < 4 then Nomatch else
   (* Get the normalized label *)
   let line = { line_pos; first = start; last } in
   let next_line () = None in
   match link_label buf ~next_line s () ~line ~start with
   | None -> (* should not happen *) Nomatch
-  | Some (_, _, rev_spans, last, key) ->
-     let start = last + 1 in
+  | Some (_, _, rev_spans, next, key) ->
+     let start = next + 2 in
+     let start = first_non_blank s ~last ~start in
      match md_attributes ~next_line s () ~line ~start with
      | None -> Nomatch
      | Some (_, _, attrs, attr_end) ->
