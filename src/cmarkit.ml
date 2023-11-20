@@ -3471,8 +3471,8 @@ module Mapper = struct
   | `Default ->
       let open Block in
       match b with
-      | Blank_line _ | Code_block _ | Html_block _
-      | Link_reference_definition _ | Thematic_break _
+      | Blank_line _ | Code_block _ | Html_block _  | Thematic_break _
+      | Link_reference_definition _ | Ext_standalone_attributes _
       | Ext_math_block _ as b -> Some b
       | Heading ((h, attrs), meta) ->
           let inline = match map_inline m (Block.Heading.inline h) with
@@ -3579,7 +3579,7 @@ module Folder = struct
   | `Default ->
       let open Block in
       match b with
-      | Blank_line _ | Code_block _ | Html_block _
+      | Blank_line _ | Code_block _ | Html_block _ | Ext_standalone_attributes _
       | Link_reference_definition _ | Thematic_break _ | Ext_math_block _ -> acc
       | Heading ((h, attrs), _) -> fold_inline f acc (Block.Heading.inline h)
       | Block_quote ((bq, attrs), _) -> fold_block f acc bq.block
