@@ -448,7 +448,7 @@ module Inline = struct
 
   let rec normalize ?(ext = ext_none) = function
   | Autolink _ | Break _ | Code_span _ | Raw_html _ | Text _
-  | Inlines ([], _) | Ext_math_span _ as i -> i
+  | Inlines ([], _) | Ext_math_span _ | Ext_attrs _ as i -> i
   | Image (l, m) -> Image ({ l with text = normalize ~ext l.text }, m)
   | Link (l, m) -> Link ({ l with text = normalize ~ext l.text }, m)
   | Inlines ([i], _) -> i
@@ -504,6 +504,8 @@ module Inline = struct
         loop ~break_on_soft acc (i :: is)
     | Ext_math_span (m, _) :: is ->
         loop ~break_on_soft (push (Math_span.tex m) acc) is
+    | Ext_attrs _ :: is ->
+        loop ~break_on_soft acc is
     | i :: is ->
         loop ~break_on_soft acc (ext ~break_on_soft i :: is)
     | [] ->
