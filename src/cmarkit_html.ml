@@ -198,6 +198,10 @@ let comment_foonote_image c l = match Inline.Link.referenced_label l with
 | None -> () | Some def ->
     comment c ("Footnote " ^ (Label.key def) ^ " referenced as image")
 
+let comment_attribute_image c l = match Inline.Link.referenced_label l with
+| None -> () | Some def ->
+    comment c ("Attribute " ^ (Label.key def) ^ " referenced as image")
+
 let block_lines c = function (* newlines only between lines *)
 | [] -> () | (l, _) :: ls ->
     let line c (l, _) = C.byte c '\n'; C.string c l in
@@ -264,6 +268,7 @@ let image ?(close = " >") c i =
       then (C.string c " title=\""; html_escaped_string c title; C.byte c '\"');
       C.string c close
   | Some (Block.Footnote.Def _) -> comment_foonote_image c i
+  | Some (Block.Attribute_definition.Def _) -> comment_foonote_image c i
   | None -> comment_undefined_label c i
   | Some _ -> comment_unknown_def_type c i
 
@@ -303,7 +308,13 @@ let link c l = match Inline.Link.reference_definition (C.get_defs c) l with
     C.string c ">"; C.inline c (Inline.Link.text l); C.string c "</a>"
 | Some (Block.Footnote.Def ((fn, todo), _)) -> link_footnote c l fn
 | Some (Block.Attribute_definition.Def ((attrs, _), _)) ->
-   C.inline c (Inline.Ext_attrs ((Inline.Attributes_span.make (Inline.Link.text l) (Block.Attribute_definition.attrs attrs)), Meta.none))
+   let ext_attrs =
+     Inline.Ext_attrs
+       ((Inline.Attributes_span.make (Inline.Link.text l)
+           (Block.Attribute_definition.attrs attrs)),
+        Meta.none)
+   in
+   C.inline c ext_attrs
 | None -> C.inline c (Inline.Link.text l); comment_undefined_label c l
 | Some _ -> C.inline c (Inline.Link.text l); comment_unknown_def_type c l
 
