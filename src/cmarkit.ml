@@ -3568,12 +3568,13 @@ module Folder = struct
       let open Inline in
       match i with
       | Autolink _ | Break _ | Code_span _ | Raw_html _ | Text _
-      | Ext_math_span _ -> acc
+      | Ext_math_span _ | Ext_attrs _ -> acc
       | Image (l, _) | Link (l, _) -> fold_inline f acc l.text
       | Emphasis ({ inline }, _) -> fold_inline f acc inline
       | Strong_emphasis ({ inline }, _) -> fold_inline f acc inline
       | Inlines (is, _) -> List.fold_left (fold_inline f) acc is
       | Ext_strikethrough (inline, _) -> fold_inline f acc inline
+
   | ext -> f.inline_ext_default f acc ext
 
   let rec fold_block f acc b = match f.block f acc b with

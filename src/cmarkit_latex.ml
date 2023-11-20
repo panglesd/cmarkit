@@ -222,6 +222,7 @@ let inline c = function
 | Inline.Text (t, _) -> text c t; true
 | Inline.Ext_strikethrough (s, _) -> strikethrough c s; true
 | Inline.Ext_math_span (ms, _) -> math_span c ms; true
+| Inline.Ext_attrs _ -> comment c "Attributes omitted"; true
 | _ -> comment c "Unknown Cmarkit inline"; true
 
 (* Block rendering *)
