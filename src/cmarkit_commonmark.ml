@@ -169,6 +169,45 @@ let tight_block_lines c = function
 
 (* Inline rendering *)
 
+let attributes c attrs =
+  let kv_attrs =
+    let kv_attrs = Cmarkit.Attributes.kv_attributes attrs in
+    List.map
+      (fun ((k,_), v) ->
+        let v = match v with None -> None | Some (v, _) -> Some v in
+        `Kv (k,v))
+      kv_attrs
+  in
+  let class' =
+    let class' = Cmarkit.Attributes.class' attrs in
+    List.map (fun (c, _) -> `Class c) class'
+  in
+  let id =
+    let id = Cmarkit.Attributes.id attrs in
+    match id with
+    | Some (id, _) -> [`Id id]
+    | _ -> []
+  in
+  let attrs = id @ class' @ kv_attrs in
+  if attrs = [] then () else
+    begin
+      newline c;
+      indent c;
+      let attrs =
+        List.map
+          (function
+           | `Id v -> "#"^v
+           | `Class v -> "." ^ v
+           | `Kv (k, Some v) -> k^"="^v
+           | `Kv (k, None) -> k
+          ) attrs
+      in
+      let s = String.concat " " attrs in
+      C.string c "{";
+      C.string c s;
+      C.string c "}"
+    end
+
 let autolink c a =
   C.byte c '<'; C.string c (fst (Inline.Autolink.link a)); C.byte c '>'
 
@@ -238,6 +277,12 @@ let link c l = match Inline.Link.reference l with
     C.byte c '['; C.inline c (Inline.Link.text l); C.byte c ']';
     C.byte c '['; link_label_lines c (Label.text label); C.byte c ']'
 
+let attrs_span c span =
+  let content = Inline.Attributes_span.content span
+  and (attrs, _) = Inline.Attributes_span.attrs span in
+  C.byte c '['; C.inline c content; C.byte c ']';
+  attributes c attrs
+
 let inlines c is = List.iter (C.inline c) is
 let image c l = C.byte c '!'; link c l
 let raw_html c h = tight_block_lines c h
@@ -266,48 +311,10 @@ let inline c = function
 | Inline.Text (t, _) -> text c t; true
 | Inline.Ext_strikethrough (s, _) -> strikethrough c s; true
 | Inline.Ext_math_span (m, _) -> math_span c m; true
+| Inline.Ext_attrs (span, _) -> attrs_span c span; true
 | _ -> C.string c "<!-- Unknown Cmarkit inline -->"; true
 
 (* Block rendering *)
-
-let attributes c attrs =
-  let kv_attrs =
-    let kv_attrs = Cmarkit.Attributes.kv_attributes attrs in
-    List.map
-      (fun ((k,_), v) ->
-        let v = match v with None -> None | Some (v, _) -> Some v in
-        `Kv (k,v))
-      kv_attrs
-  in
-  let class' =
-    let class' = Cmarkit.Attributes.class' attrs in
-    List.map (fun (c, _) -> `Class c) class'
-  in
-  let id =
-    let id = Cmarkit.Attributes.id attrs in
-    match id with
-    | Some (id, _) -> [`Id id]
-    | _ -> []
-  in
-  let attrs = id @ class' @ kv_attrs in
-  if attrs = [] then () else
-    begin
-      newline c;
-      indent c;
-      let attrs =
-        List.map
-          (function
-           | `Id v -> "#"^v
-           | `Class v -> "." ^ v
-           | `Kv (k, Some v) -> k^"="^v
-           | `Kv (k, None) -> k
-          ) attrs
-      in
-      let s = String.concat " " attrs in
-      C.string c "{";
-      C.string c s;
-      C.string c "}"
-    end
 
 let blank_line c l = newline c; indent c; C.string c l
 
