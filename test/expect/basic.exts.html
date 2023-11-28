@@ -441,7 +441,32 @@ Paragraphy</p>
 <td></td>
 <td></td>
 </tr>
-</table></div><section role="doc-endnotes"><ol>
+</table></div><h2>Attributes</h2>
+<h3>Block attributes</h3>
+<p id="my-id">This is a paragraph with the <code>my-id</code> is.</p>
+<p id="your-id">I have <code>your-id</code>, not mine</p>
+<p id="his-id">I have <code>his-id</code>, not mine, not yours</p>
+<h4 class="blue">This is a title with the <code>.blue</code> class</h4>
+<div key=value>
+<ul>
+<li>This is an item where <code>key</code> has value <code>value</code>.</li>
+<li>It is not possible to attach attributes to list items... yet</li>
+</ul>
+</div>
+<p id="my-id" class="my-class" key="value" flag>I'm a paragraph with many attributes</p>
+<p id="my-id" class="my-class2 my-class" key2="value2" flag2 key="value" flag>I have much more attribute than the previous one, since they stack</p>
+<p id="your-id">I have your id</p>
+<p class="class1 class3 class2 class4">I have a lot of class: <code>class1</code>, <code>class2</code>, <code>class3</code> and <code>class4</code></p>
+<p class="class4 class1 class3 class2">Me too!</p>
+<p id="space-do-not-matter">But spaceships matter.</p>
+<p key="a value with a }">Some word</p>
+<div introducing standalone attributes></div>
+<div id="attributes" class="standalone" also="stack"></div>
+<h3>Inline attributes</h3>
+<p><span class="I" am></span> not a block attribute, but a standalone inline attribute, as I have content in the line.</p>
+<p>In the middle of paragraphs, <span id="attributes" class="inline"></span> work.</p>
+<p>However, at the end, they do <span pause></span></p>
+<section role="doc-endnotes"><ol>
 <li id="fn-1">
 <p>And it can have
 lazy continuation lines and multiple paragraphs</p>

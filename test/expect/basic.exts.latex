@@ -372,3 +372,61 @@ This is an empty table with three columns:
 \hline
 \end{tabular}
 \bigskip
+
+\subsection{Attributes}
+
+\subsubsection{Block attributes}
+% Attributes cannot be rendered in latex
+
+This is a paragraph with the \texttt{my-id} is.
+% Attributes cannot be rendered in latex
+
+I have \texttt{your-id}, not mine
+% Attributes cannot be rendered in latex
+
+I have \texttt{his-id}, not mine, not yours
+% Attributes cannot be rendered in latex
+
+\paragraph{This is a title with the \texttt{.blue} class}
+% Attributes cannot be rendered in latex
+
+\begin{itemize}
+\item{}
+This is an item where \texttt{key} has value \texttt{value}.
+\item{}
+It is not possible to attach attributes to list items... yet
+\end{itemize}
+% Attributes cannot be rendered in latex
+
+I'm a paragraph with many attributes
+% Attributes cannot be rendered in latex
+
+I have much more attribute than the previous one, since they stack
+% Attributes cannot be rendered in latex
+
+I have your id
+% Attributes cannot be rendered in latex
+
+I have a lot of class: \texttt{class1}, \texttt{class2}, \texttt{class3} and \texttt{class4}
+% Attributes cannot be rendered in latex
+
+Me too!
+% Attributes cannot be rendered in latex
+
+But spaceships matter.
+% Attributes cannot be rendered in latex
+
+Some word
+% Attributes cannot be rendered in latex
+% Attributes cannot be rendered in latex
+
+\subsubsection{Inline attributes}
+
+% Attributes omitted
+ not a block attribute, but a standalone inline attribute, as I have content in the line.
+
+In the middle of paragraphs, % Attributes omitted
+ work.
+
+However, at the end, they do % Attributes omitted
+

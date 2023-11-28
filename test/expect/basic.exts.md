@@ -181,10 +181,10 @@ This is an empty table with three columns:
 {#my-id}
 This is a paragraph with the `my-id` is.
 
-{#my-id #your-id}
+{#your-id #my-id}
 I have `your-id`, not mine
 
-{#my-id #your-id id="his-id"}
+{id="his-id" #your-id #my-id}
 I have `his-id`, not mine, not yours
 
 {.blue}
@@ -223,4 +223,10 @@ Some word
 {.standalone #attributes}
 {also="stack"}
 
-{.I am} not a block attribute due to 
+### Inline attributes
+
+{.I am} not a block attribute, but a standalone inline attribute, as I have content in the line.
+
+In the middle of paragraphs, {.inline #attributes} work.
+
+However, at the end, they do {pause}

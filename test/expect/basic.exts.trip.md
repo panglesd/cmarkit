@@ -174,3 +174,58 @@ This is an empty table with three columns:
 
  | |||
 
+## Attributes
+
+### Block attributes
+
+{#my-id}
+This is a paragraph with the `my-id` is.
+
+{#your-id}
+I have `your-id`, not mine
+
+{#his-id}
+I have `his-id`, not mine, not yours
+
+{.blue}
+#### This is a title with the `.blue` class
+
+{key=value}
+- This is an item where `key` has value `value`.
+- It is not possible to attach attributes to list items... yet
+
+{#my-id .my-class key="value" flag}
+I'm a paragraph with many attributes
+
+{#my-id .my-class2 .my-class key2="value2" flag2 key="value" flag}
+I have much more attribute than the previous one, since they stack
+
+{#your-id}
+I have your id
+
+{.class1 .class3 .class2 .class4}
+I have a lot of class: `class1`, `class2`, `class3` and `class4`
+
+{.class4 .class1 .class3 .class2}
+Me too\!
+
+{#space-do-not-matter}
+But spaceships matter.
+
+{key="a value with a }"}
+Some word
+
+{introducing standalone attributes}
+
+{#attributes .standalone also="stack"}
+
+### Inline attributes
+
+[]
+{.I am} not a block attribute, but a standalone inline attribute, as I have content in the line.
+
+In the middle of paragraphs, []
+{#attributes .inline} work.
+
+However, at the end, they do []
+{pause}

@@ -170,7 +170,13 @@ module Attributes = struct
 
   let add (key, meta) value t =
     match key, value with
-    | "id", Some value -> set_id t value
+    | "id", Some (value, meta) ->
+       let value = match value.[0] with
+         | '"' ->
+            String.sub value 1 (String.length value - 2)
+         | _ -> value
+       in
+       set_id t (value, meta)
     | "class", Some (value, meta) ->
        let values = match value.[0] with
          | '"' ->
@@ -3464,7 +3470,8 @@ module Mapper = struct
           let* inline = map_inline m s in
           Some (Ext_strikethrough (inline, meta))
       | Ext_attrs ({ content; attrs }, meta) ->
-          let* content = map_inline m content in
+         let content = map_inline m content in
+         let content = Option.value ~default:(Inline.Inlines ([], Meta.none)) content in
           Some (Ext_attrs ({content ; attrs}, meta))
       | ext -> m.inline_ext_default m ext
 

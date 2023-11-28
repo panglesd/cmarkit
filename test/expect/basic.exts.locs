@@ -1,5 +1,5 @@
 Blocks:
-File "basic.exts.md", lines 1-177
+File "basic.exts.md", lines 1-233
   Heading, level 1:
   File "basic.exts.md", line 1, characters 0-12
     Text:
@@ -1164,5 +1164,223 @@ File "basic.exts.md", lines 1-177
       File "basic.exts.md", line 175, characters 6-6
   Blank line:
   File "basic.exts.md", line 176
+  Heading, level 2:
+  File "basic.exts.md", line 177, characters 0-13
+    Text:
+    File "basic.exts.md", line 177, characters 3-13
   Blank line:
-  File "basic.exts.md", line 177
+  File "basic.exts.md", line 178
+  Heading, level 3:
+  File "basic.exts.md", line 179, characters 0-20
+    Text:
+    File "basic.exts.md", line 179, characters 4-20
+  Blank line:
+  File "basic.exts.md", line 180
+  Paragraph:
+  File "basic.exts.md", line 182, characters 0-40
+    Inlines:
+    File "basic.exts.md", line 182, characters 0-40
+      Text:
+      File "basic.exts.md", line 182, characters 0-29
+      Code span:
+      File "basic.exts.md", line 182, characters 29-36
+        Code span line:
+        File "basic.exts.md", line 182, characters 30-35
+      Text:
+      File "basic.exts.md", line 182, characters 36-40
+  Blank line:
+  File "basic.exts.md", line 183
+  Paragraph:
+  File "basic.exts.md", line 185, characters 0-26
+    Inlines:
+    File "basic.exts.md", line 185, characters 0-26
+      Text:
+      File "basic.exts.md", line 185, characters 0-7
+      Code span:
+      File "basic.exts.md", line 185, characters 7-16
+        Code span line:
+        File "basic.exts.md", line 185, characters 8-15
+      Text:
+      File "basic.exts.md", line 185, characters 16-26
+  Blank line:
+  File "basic.exts.md", line 186
+  Paragraph:
+  File "basic.exts.md", line 188, characters 0-36
+    Inlines:
+    File "basic.exts.md", line 188, characters 0-36
+      Text:
+      File "basic.exts.md", line 188, characters 0-7
+      Code span:
+      File "basic.exts.md", line 188, characters 7-15
+        Code span line:
+        File "basic.exts.md", line 188, characters 8-14
+      Text:
+      File "basic.exts.md", line 188, characters 15-36
+  Blank line:
+  File "basic.exts.md", line 189
+  Heading, level 4:
+  File "basic.exts.md", line 191, characters 0-43
+    Inlines:
+    File "basic.exts.md", line 191, characters 5-43
+      Text:
+      File "basic.exts.md", line 191, characters 5-30
+      Code span:
+      File "basic.exts.md", line 191, characters 30-37
+        Code span line:
+        File "basic.exts.md", line 191, characters 31-36
+      Text:
+      File "basic.exts.md", line 191, characters 37-43
+  Blank line:
+  File "basic.exts.md", line 192
+  List (tight:true):
+  File "basic.exts.md", lines 194-195, characters 0-62
+    List item:
+    File "basic.exts.md", line 194, characters 0-48
+      List marker:
+      File "basic.exts.md", line 194, characters 0-1
+      Paragraph:
+      File "basic.exts.md", line 194, characters 2-48
+        Inlines:
+        File "basic.exts.md", line 194, characters 2-48
+          Text:
+          File "basic.exts.md", line 194, characters 2-24
+          Code span:
+          File "basic.exts.md", line 194, characters 24-29
+            Code span line:
+            File "basic.exts.md", line 194, characters 25-28
+          Text:
+          File "basic.exts.md", line 194, characters 29-40
+          Code span:
+          File "basic.exts.md", line 194, characters 40-47
+            Code span line:
+            File "basic.exts.md", line 194, characters 41-46
+          Text:
+          File "basic.exts.md", line 194, characters 47-48
+    List item:
+    File "basic.exts.md", line 195, characters 0-62
+      List marker:
+      File "basic.exts.md", line 195, characters 0-1
+      Paragraph:
+      File "basic.exts.md", line 195, characters 2-62
+        Text:
+        File "basic.exts.md", line 195, characters 2-62
+  Blank line:
+  File "basic.exts.md", line 196
+  Paragraph:
+  File "basic.exts.md", line 198, characters 0-36
+    Text:
+    File "basic.exts.md", line 198, characters 0-36
+  Blank line:
+  File "basic.exts.md", line 199
+  Paragraph:
+  File "basic.exts.md", line 202, characters 0-66
+    Text:
+    File "basic.exts.md", line 202, characters 0-66
+  Blank line:
+  File "basic.exts.md", line 203
+  Paragraph:
+  File "basic.exts.md", line 206, characters 0-14
+    Text:
+    File "basic.exts.md", line 206, characters 0-14
+  Blank line:
+  File "basic.exts.md", line 207
+  Paragraph:
+  File "basic.exts.md", line 209, characters 0-64
+    Inlines:
+    File "basic.exts.md", line 209, characters 0-64
+      Text:
+      File "basic.exts.md", line 209, characters 0-23
+      Code span:
+      File "basic.exts.md", line 209, characters 23-31
+        Code span line:
+        File "basic.exts.md", line 209, characters 24-30
+      Text:
+      File "basic.exts.md", line 209, characters 31-33
+      Code span:
+      File "basic.exts.md", line 209, characters 33-41
+        Code span line:
+        File "basic.exts.md", line 209, characters 34-40
+      Text:
+      File "basic.exts.md", line 209, characters 41-43
+      Code span:
+      File "basic.exts.md", line 209, characters 43-51
+        Code span line:
+        File "basic.exts.md", line 209, characters 44-50
+      Text:
+      File "basic.exts.md", line 209, characters 51-56
+      Code span:
+      File "basic.exts.md", line 209, characters 56-64
+        Code span line:
+        File "basic.exts.md", line 209, characters 57-63
+  Blank line:
+  File "basic.exts.md", line 210
+  Paragraph:
+  File "basic.exts.md", line 213, characters 0-7
+    Text:
+    File "basic.exts.md", line 213, characters 0-7
+  Blank line:
+  File "basic.exts.md", line 214
+  Paragraph:
+  File "basic.exts.md", line 216, characters 0-22
+    Text:
+    File "basic.exts.md", line 216, characters 0-22
+  Blank line:
+  File "basic.exts.md", line 217
+  Paragraph:
+  File "basic.exts.md", line 219, characters 0-9
+    Text:
+    File "basic.exts.md", line 219, characters 0-9
+  Blank line:
+  File "basic.exts.md", line 220
+  Standalone attributes:
+  File "basic.exts.md", line 221, characters 0-35
+  Blank line:
+  File "basic.exts.md", line 222
+  Standalone attributes:
+  File "basic.exts.md", lines 223-224, characters 0-14
+  Blank line:
+  File "basic.exts.md", line 225
+  Heading, level 3:
+  File "basic.exts.md", line 226, characters 0-21
+    Text:
+    File "basic.exts.md", line 226, characters 4-21
+  Blank line:
+  File "basic.exts.md", line 227
+  Paragraph:
+  File "basic.exts.md", line 228, characters 0-96
+    Inlines:
+    File "basic.exts.md", line 228, characters 0-96
+      Attributes:
+      File "-"
+        Inlines:
+        File "-"
+      Text:
+      File "basic.exts.md", line 228, characters 7-96
+  Blank line:
+  File "basic.exts.md", line 229
+  Paragraph:
+  File "basic.exts.md", line 230, characters 0-56
+    Inlines:
+    File "basic.exts.md", line 230, characters 0-56
+      Text:
+      File "basic.exts.md", line 230, characters 0-29
+      Attributes:
+      File "-"
+        Inlines:
+        File "-"
+      Text:
+      File "basic.exts.md", line 230, characters 50-56
+  Blank line:
+  File "basic.exts.md", line 231
+  Paragraph:
+  File "basic.exts.md", line 232, characters 0-36
+    Inlines:
+    File "basic.exts.md", line 232, characters 0-36
+      Text:
+      File "basic.exts.md", line 232, characters 0-29
+      Attributes:
+      File "-"
+        Inlines:
+        File "-"
+  Blank line:
+  File "basic.exts.md", line 233
