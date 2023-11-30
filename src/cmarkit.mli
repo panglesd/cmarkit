@@ -318,7 +318,17 @@ module Attributes : sig
   (** [find k m] the value of [k] in [m], if any. *)
 
   val kv_attributes : t -> (key node * value node option) list
-  (** TODO. *)
+                                                          (** TODO. *)
+
+  val map :
+    ([> `Class of string node
+     | `Id of string node
+     | `Kv of key node * value node option ] ->
+     [< `Class of string node
+     | `Id of string node
+     | `Kv of (key node) * value node option ]
+       option) ->
+    t -> t
 end
 
 type 'a attributed = 'a * Attributes.t node
@@ -1573,7 +1583,13 @@ module Mapper : sig
 
   val make :
     ?inline_ext_default:Inline.t map -> ?block_ext_default:Block.t map ->
-    ?inline:Inline.t mapper -> ?block:Block.t mapper -> unit -> t
+    ?inline:Inline.t mapper -> ?block:Block.t mapper -> ?attrs:([ `Class of string node
+        | `Id of string node
+        | `Kv of Attributes.key node * Attributes.value node option ] ->
+        [ `Class of string node
+        | `Id of string node
+        | `Kv of Attributes.key node * Attributes.value node option ] option) ->
+ unit -> t
   (** [make ?inline ?block ()] is a mapper using [inline] and [block]
       to map the abstract syntax tree. Both default to [fun _ _ -> `Default].
 

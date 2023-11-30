@@ -197,6 +197,18 @@ module Attributes = struct
     let base = List.fold_left add_class base (class' new_attrs) in
     List.fold_left (fun base (k, v) -> add k v base) base (kv_attributes new_attrs)
 
+  (** Merge *)
+
+  let map f attrs =
+    let class' = List.filter_map (fun x -> f (`Class x)) attrs.class' in
+    let id = match attrs.id with None -> [] | Some id -> List.filter_map (fun _ -> f (`Id id)) [()] in
+    let kv_attrs = List.filter_map (fun x -> f (`Kv x)) attrs.kv_attributes in
+    List.fold_left
+      (fun acc -> function
+        | `Class x -> add_class acc x
+        | `Id id -> set_id acc id
+        | `Kv (x,y) -> add x y acc)
+      empty (class' @ id @ kv_attrs)
 end
 
 let empty_attrs = Attributes.empty, None
@@ -3423,6 +3435,14 @@ module Mapper = struct
     { inline_ext_default : Inline.t map;
       block_ext_default : Block.t map;
       inline : Inline.t mapper;
+      attrs :
+        ([ `Class of string node
+         | `Id of string node
+         | `Kv of Attributes.key node * Attributes.value node option ] ->
+         [ `Class of string node
+         | `Id of string node
+         | `Kv of Attributes.key node * Attributes.value node option ]
+           option);
       block : Block.t mapper }
   and 'a map = t -> 'a -> 'a filter_map
   and 'a mapper = t -> 'a -> 'a result
@@ -3430,12 +3450,13 @@ module Mapper = struct
   let none _ _ = `Default
   let ext_inline_none _ _ = invalid_arg Inline.err_unknown
   let ext_block_none _ _ = invalid_arg Block.err_unknown
+  let attrs x = Some x
   let make
       ?(inline_ext_default = ext_inline_none)
       ?(block_ext_default = ext_block_none)
-      ?(inline = none) ?(block = none) ()
+      ?(inline = none) ?(block = none) ?(attrs = attrs) ()
     =
-    { inline_ext_default; block_ext_default; inline; block }
+    { inline_ext_default; block_ext_default; inline; block ; attrs }
 
   let inline_mapper m = m.inline
   let block_mapper m = m.block
@@ -3470,6 +3491,10 @@ module Mapper = struct
           let* inline = map_inline m s in
           Some (Ext_strikethrough (inline, meta))
       | Ext_attrs ({ content; attrs }, meta) ->
+         let attrs =
+           let attrs, meta = attrs in
+           Attributes.map m.attrs attrs, meta
+         in
          let content = map_inline m content in
          let content = Option.value ~default:(Inline.Inlines ([], Meta.none)) content in
           Some (Ext_attrs ({content ; attrs}, meta))
@@ -3478,18 +3503,37 @@ module Mapper = struct
   let rec map_block m b = match m.block m b with
   | `Map b -> b
   | `Default ->
+     let map_attrs (attrs, meta) = Attributes.map m.attrs attrs, meta in
       let open Block in
       match b with
-      | Blank_line _ | Code_block _ | Html_block _  | Thematic_break _
-      | Link_reference_definition _ | Ext_standalone_attributes _
-      | Ext_math_block _ as b -> Some b
+      | Blank_line _ as b -> Some b
+      | Link_reference_definition ((lrd, attrs), meta) ->
+          let attrs = map_attrs attrs in
+          Some (Link_reference_definition ((lrd, attrs), meta))
+      | Ext_standalone_attributes attrs ->
+          let attrs = map_attrs attrs in
+          Some (Ext_standalone_attributes attrs)
+      | Ext_math_block ((mb, attrs), meta) ->
+          let attrs = map_attrs attrs in
+          Some (Ext_math_block ((mb, attrs), meta))
+      | Thematic_break ((tb, attrs), meta) ->
+          let attrs = map_attrs attrs in
+          Some (Thematic_break ((tb, attrs), meta))
+      | Html_block ((hb, attrs), meta) ->
+          let attrs = map_attrs attrs in
+          Some (Html_block ((hb, attrs), meta))
+      | Code_block ((cb, attrs), meta) ->
+          let attrs = map_attrs attrs in
+          Some (Code_block ((cb, attrs), meta))
       | Heading ((h, attrs), meta) ->
+          let attrs = map_attrs attrs in
           let inline = match map_inline m (Block.Heading.inline h) with
           | None -> (* Can be empty *) Inline.Inlines ([], Meta.none)
           | Some i -> i
           in
           Some (Heading (({ h with inline}, attrs), meta))
       | Block_quote ((b, attrs), meta) ->
+          let attrs = map_attrs attrs in
           let block = match map_block m b.block with
           | None -> (* Can be empty *) Blocks ([], Meta.none) | Some b -> b
           in
@@ -3498,6 +3542,7 @@ module Mapper = struct
           (match List.filter_map (map_block m) bs with
           | [] -> None | bs -> Some (Blocks (bs, meta)))
       | List ((l, attrs), meta) ->
+          let attrs = map_attrs attrs in
           let map_list_item m (i, meta) =
             let* block = map_block m (List_item.block i) in
             Some ({ i with block }, meta)
@@ -3505,9 +3550,11 @@ module Mapper = struct
           (match List.filter_map (map_list_item m) l.items with
           | [] -> None | items -> Some (List (({ l with items }, attrs), meta)))
       | Paragraph ((p, attrs), meta) ->
+          let attrs = map_attrs attrs in
           let* inline = map_inline m (Paragraph.inline p) in
           Some (Paragraph (({ p with inline }, attrs), meta))
       | Ext_table ((t, attrs), meta) ->
+          let attrs = map_attrs attrs in
           let map_col m (i, layout) = match map_inline m i with
           | None -> None | Some i -> Some (i, layout)
           in
@@ -3521,6 +3568,7 @@ module Mapper = struct
           let rows = List.map map_row t.rows in
           Some (Ext_table (({ t with Table.rows }, attrs), meta))
       | Ext_footnote_definition ((fn, attrs), meta) ->
+          let attrs = map_attrs attrs in
           let block = match map_block m fn.block with
           | None -> (* Can be empty *) Blocks ([], Meta.none) | Some b -> b
           in
@@ -3534,6 +3582,9 @@ module Mapper = struct
     | Block.Footnote.Def ((fn, attrs), meta) ->
         let block = map_block m (Block.Footnote.block fn) in
         Block.Footnote.Def (({ fn with block }, attrs), meta)
+    | Block.Attribute_definition.Def ((label, attrs), meta) ->
+        let attrs = Attributes.map m.attrs attrs in
+        Block.Attribute_definition.Def ((label, attrs), meta)
     | def -> def
     in
     let block = map_block m (Doc.block d) in
