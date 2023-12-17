@@ -465,7 +465,17 @@ Paragraphy</p>
 <h3>Inline attributes</h3>
 <p><span class="I" am></span> not a block attribute, but a standalone inline attribute, as I have content in the line.</p>
 <p>In the middle of paragraphs, <span id="attributes" class="inline"></span> work.</p>
-<p>However, at the end, they do <span pause></span></p>
+<p>Similarly, at the end, they work <span as=well></span></p>
+<p>Without specified delimitations, inline attributes are either <span standalone></span> or attached to the <span word>left-closest</span>.</p>
+<p>Inline attributes can <span words>refer to many</span> including <span class="bold">with <strong>inline</strong></span>.</p>
+<p>Attributes can be nested: <a href="example.com">link <span attrs>with</span></a>, <span attrs>attrs <a href="example.com">with
+link</a></span>, <span attrs2>attrs <span attrs1>within</span></span>.</p>
+<h3>Attributes definition</h3>
+<p>We can provide <span class="important-word">attributes</span> definition to <span class="important-word">avoid</span> <span id="clut">cluttering</span> a <span class="important-word">line with</span> attributes.</p>
+<p>Attributes attached to attribute definition do nothing:</p>
+<p>A <span class="present">b</span> c</p>
+<p>However, for link definition, they are present:</p>
+<p>A <a href="http://example.com" class="present">b</a> c</p>
 <section role="doc-endnotes"><ol>
 <li id="fn-1">
 <p>And it can have

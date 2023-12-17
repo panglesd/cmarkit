@@ -428,5 +428,38 @@ Some word
 In the middle of paragraphs, % Attributes omitted
  work.
 
-However, at the end, they do % Attributes omitted
+Similarly, at the end, they work % Attributes omitted
 
+
+Without specified delimitations, inline attributes are either % Attributes omitted
+ or attached to the % Attributes omitted
+.
+
+Inline attributes can % Attributes omitted
+ including % Attributes omitted
+.
+
+Attributes can be nested: \href{example.com}{link % Attributes omitted
+}, % Attributes omitted
+, % Attributes omitted
+.
+
+\subsubsection{Attributes definition}
+
+We can provide attributes% Unknown label definition type for a
+ definition to avoid% Unknown label definition type for a
+ cluttering% Unknown label definition type for cluttering
+ a line with% Unknown label definition type for a
+ attributes.
+% Unknown Cmarkit block
+% Unknown Cmarkit block
+
+Attributes attached to attribute definition do nothing:
+
+A b% Unknown label definition type for attr-attached-def
+ c
+% Unknown Cmarkit block
+
+However, for link definition, they are present:
+
+A \href{http://example.com}{b} c

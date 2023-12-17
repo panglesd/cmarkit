@@ -3573,6 +3573,10 @@ module Mapper = struct
           | None -> (* Can be empty *) Blocks ([], Meta.none) | Some b -> b
           in
           Some (Ext_footnote_definition (({ fn with block}, attrs), meta))
+      | Ext_attribute_definition ((atd, attrs), meta) ->
+          let attrs = map_attrs attrs in
+          let ext_attrs = map_attrs atd.attrs in
+          Some (Ext_attribute_definition (({atd with attrs = ext_attrs}, attrs), meta))
       | ext -> m.block_ext_default m ext
 
   let map_doc m d =
@@ -3641,7 +3645,8 @@ module Folder = struct
       let open Block in
       match b with
       | Blank_line _ | Code_block _ | Html_block _ | Ext_standalone_attributes _
-      | Link_reference_definition _ | Thematic_break _ | Ext_math_block _ -> acc
+      | Link_reference_definition _ | Thematic_break _ | Ext_math_block _
+      | Ext_attribute_definition _ -> acc
       | Heading ((h, attrs), _) -> fold_inline f acc (Block.Heading.inline h)
       | Block_quote ((bq, attrs), _) -> fold_block f acc bq.block
       | Blocks (bs, _) -> List.fold_left (fold_block f) acc bs

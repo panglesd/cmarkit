@@ -229,4 +229,32 @@ Some word
 
 In the middle of paragraphs, {.inline #attributes} work.
 
-However, at the end, they do {pause}
+Similarly, at the end, they work {as=well}
+
+Without specified delimitations, inline attributes are either {standalone} or attached to the left-closest{word}.
+
+Inline attributes can [refer to many]{words} including [with **inline**]{.bold}.
+
+Attributes can be nested: [link [with]{attrs}](example.com), [attrs [with
+link](example.com)]{attrs}, [attrs [within]{attrs1}]{attrs2}.
+
+### Attributes definition
+
+We can provide [attributes][a] definition to [avoid][a] [cluttering] a [line with][a] attributes.
+
+[cluttering]: {#clut}
+[a]: {.important-word}
+
+Attributes attached to attribute definition do nothing:
+
+A [b][attr-attached-def] c
+
+{.not-present}
+[attr-attached-def]: {.present}
+
+However, for link definition, they are present:
+
+A [b][link-def-with-attrs] c
+
+{.present}
+[link-def-with-attrs]: http://example.com
