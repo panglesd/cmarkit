@@ -3465,6 +3465,8 @@ module Mapper = struct
 
   let ( let* ) = Option.bind
 
+  let map_attrs m attrs = Attributes.map m.attrs attrs
+
   let rec map_inline m i = match m.inline m i with
   | `Map i -> i
   | `Default ->

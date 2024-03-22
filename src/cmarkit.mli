@@ -1610,6 +1610,9 @@ module Mapper : sig
   val map_block : Block.t map
   (** [map_block m b] maps [b] with [m]. *)
 
+  val map_attrs :  t -> Attributes.t -> Attributes.t
+  (** [map_attrs m a] maps [a] with [m]. *)
+
   val map_doc : t -> Doc.t -> Doc.t
   (** [map_doc m d] maps [Doc.block d] with [m]. If the document
       block maps to [None] is replaced by {!Block.empty}.
