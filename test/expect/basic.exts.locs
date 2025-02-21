@@ -1,5 +1,5 @@
 Blocks:
-File "basic.exts.md", lines 1-264
+File "basic.exts.md", lines 1-267
   Heading, level 1:
   File "basic.exts.md", line 1, characters 0-12
     Text:
@@ -1516,128 +1516,182 @@ File "basic.exts.md", lines 1-264
       File "basic.exts.md", line 242, characters 60-61
   Blank line:
   File "basic.exts.md", line 243
-  Heading, level 3:
-  File "basic.exts.md", line 244, characters 0-25
-    Text:
-    File "basic.exts.md", line 244, characters 4-25
-  Blank line:
-  File "basic.exts.md", line 245
   Paragraph:
-  File "basic.exts.md", line 246, characters 0-97
+  File "basic.exts.md", lines 244-245, characters 0-80
     Inlines:
-    File "basic.exts.md", line 246, characters 0-97
+    File "basic.exts.md", lines 244-245, characters 0-80
       Text:
-      File "basic.exts.md", line 246, characters 0-15
-      Link:
-      File "basic.exts.md", line 246, characters 15-30
+      File "basic.exts.md", line 244, characters 0-57
+      Attributes:
+      File "-"
         Text:
-        File "basic.exts.md", line 246, characters 16-26
-        Label:
-        File "basic.exts.md", line 246, characters 28-29
-        Label definition:
-        File "basic.exts.md", line 249, characters 1-2
+        File "basic.exts.md", line 244, characters 57-61
       Text:
-      File "basic.exts.md", line 246, characters 30-45
-      Link:
-      File "basic.exts.md", line 246, characters 45-55
-        Text:
-        File "basic.exts.md", line 246, characters 46-51
-        Label:
-        File "basic.exts.md", line 246, characters 53-54
-        Label definition:
-        File "basic.exts.md", line 249, characters 1-2
+      File "basic.exts.md", line 244, characters 68-75
+      Soft break:
+      File "basic.exts.md", lines 244-245, characters 75-0
+        Layout before:
+        File "basic.exts.md", line 244, characters 75-75
+        Layout after:
+        File "basic.exts.md", line 245
       Text:
-      File "basic.exts.md", line 246, characters 55-56
-      Link:
-      File "basic.exts.md", line 246, characters 56-68
-        Text:
-        File "basic.exts.md", line 246, characters 57-67
-        Label:
-        File "basic.exts.md", line 246, characters 57-67
-        Label definition:
-        File "basic.exts.md", line 248, characters 1-11
+      File "basic.exts.md", line 245, characters 0-9
+      Attributes:
+      File "-"
+        Code span:
+        File "basic.exts.md", line 245, characters 9-20
+          Code span line:
+          File "basic.exts.md", line 245, characters 10-19
       Text:
-      File "basic.exts.md", line 246, characters 68-71
-      Link:
-      File "basic.exts.md", line 246, characters 71-85
-        Text:
-        File "basic.exts.md", line 246, characters 72-81
-        Label:
-        File "basic.exts.md", line 246, characters 83-84
-        Label definition:
-        File "basic.exts.md", line 249, characters 1-2
+      File "basic.exts.md", line 245, characters 26-33
+      Attributes:
+      File "-"
+        Image:
+        File "basic.exts.md", line 245, characters 33-45
+          Text:
+          File "basic.exts.md", line 245, characters 35-40
+          Inline:
+          File "basic.exts.md", line 245, characters 41-45
+          Destination:
+          File "basic.exts.md", line 245, characters 42-44
       Text:
-      File "basic.exts.md", line 246, characters 85-97
+      File "basic.exts.md", line 245, characters 52-54
+      Attributes:
+      File "-"
+        Link:
+        File "basic.exts.md", line 245, characters 54-67
+          Text:
+          File "basic.exts.md", line 245, characters 55-60
+          Inline:
+          File "basic.exts.md", line 245, characters 61-67
+          Destination:
+          File "basic.exts.md", line 245, characters 62-66
+      Text:
+      File "basic.exts.md", line 245, characters 79-80
   Blank line:
-  File "basic.exts.md", line 247
-
-
-Unknown Cmarkit block
-
-
-Unknown Cmarkit block
+  File "basic.exts.md", line 246
+  Heading, level 3:
+  File "basic.exts.md", line 247, characters 0-25
+    Text:
+    File "basic.exts.md", line 247, characters 4-25
+  Blank line:
+  File "basic.exts.md", line 248
+  Paragraph:
+  File "basic.exts.md", line 249, characters 0-97
+    Inlines:
+    File "basic.exts.md", line 249, characters 0-97
+      Text:
+      File "basic.exts.md", line 249, characters 0-15
+      Link:
+      File "basic.exts.md", line 249, characters 15-30
+        Text:
+        File "basic.exts.md", line 249, characters 16-26
+        Label:
+        File "basic.exts.md", line 249, characters 28-29
+        Label definition:
+        File "basic.exts.md", line 252, characters 1-2
+      Text:
+      File "basic.exts.md", line 249, characters 30-45
+      Link:
+      File "basic.exts.md", line 249, characters 45-55
+        Text:
+        File "basic.exts.md", line 249, characters 46-51
+        Label:
+        File "basic.exts.md", line 249, characters 53-54
+        Label definition:
+        File "basic.exts.md", line 252, characters 1-2
+      Text:
+      File "basic.exts.md", line 249, characters 55-56
+      Link:
+      File "basic.exts.md", line 249, characters 56-68
+        Text:
+        File "basic.exts.md", line 249, characters 57-67
+        Label:
+        File "basic.exts.md", line 249, characters 57-67
+        Label definition:
+        File "basic.exts.md", line 251, characters 1-11
+      Text:
+      File "basic.exts.md", line 249, characters 68-71
+      Link:
+      File "basic.exts.md", line 249, characters 71-85
+        Text:
+        File "basic.exts.md", line 249, characters 72-81
+        Label:
+        File "basic.exts.md", line 249, characters 83-84
+        Label definition:
+        File "basic.exts.md", line 252, characters 1-2
+      Text:
+      File "basic.exts.md", line 249, characters 85-97
   Blank line:
   File "basic.exts.md", line 250
-  Paragraph:
-  File "basic.exts.md", line 251, characters 0-55
-    Text:
-    File "basic.exts.md", line 251, characters 0-55
-  Blank line:
-  File "basic.exts.md", line 252
-  Paragraph:
-  File "basic.exts.md", line 253, characters 0-26
-    Inlines:
-    File "basic.exts.md", line 253, characters 0-26
-      Text:
-      File "basic.exts.md", line 253, characters 0-2
-      Link:
-      File "basic.exts.md", line 253, characters 2-24
-        Text:
-        File "basic.exts.md", line 253, characters 3-4
-        Label:
-        File "basic.exts.md", line 253, characters 6-23
-        Label definition:
-        File "basic.exts.md", line 256, characters 1-18
-      Text:
-      File "basic.exts.md", line 253, characters 24-26
-  Blank line:
-  File "basic.exts.md", line 254
+
+
+Unknown Cmarkit block
 
 
 Unknown Cmarkit block
   Blank line:
-  File "basic.exts.md", line 257
+  File "basic.exts.md", line 253
   Paragraph:
-  File "basic.exts.md", line 258, characters 0-47
+  File "basic.exts.md", line 254, characters 0-55
     Text:
-    File "basic.exts.md", line 258, characters 0-47
+    File "basic.exts.md", line 254, characters 0-55
   Blank line:
-  File "basic.exts.md", line 259
+  File "basic.exts.md", line 255
   Paragraph:
-  File "basic.exts.md", line 260, characters 0-28
+  File "basic.exts.md", line 256, characters 0-26
     Inlines:
-    File "basic.exts.md", line 260, characters 0-28
+    File "basic.exts.md", line 256, characters 0-26
       Text:
-      File "basic.exts.md", line 260, characters 0-2
+      File "basic.exts.md", line 256, characters 0-2
       Link:
-      File "basic.exts.md", line 260, characters 2-26
+      File "basic.exts.md", line 256, characters 2-24
         Text:
-        File "basic.exts.md", line 260, characters 3-4
+        File "basic.exts.md", line 256, characters 3-4
         Label:
-        File "basic.exts.md", line 260, characters 6-25
+        File "basic.exts.md", line 256, characters 6-23
         Label definition:
-        File "basic.exts.md", line 263, characters 1-20
+        File "basic.exts.md", line 259, characters 1-18
       Text:
-      File "basic.exts.md", line 260, characters 26-28
+      File "basic.exts.md", line 256, characters 24-26
   Blank line:
-  File "basic.exts.md", line 261
-  Link reference definition:
-  File "basic.exts.md", line 263, characters 0-41
-    Label:
-    File "basic.exts.md", line 263, characters 1-20
-    Defined label:
-    File "basic.exts.md", line 263, characters 1-20
-    Destination:
-    File "basic.exts.md", line 263, characters 23-41
+  File "basic.exts.md", line 257
+
+
+Unknown Cmarkit block
+  Blank line:
+  File "basic.exts.md", line 260
+  Paragraph:
+  File "basic.exts.md", line 261, characters 0-47
+    Text:
+    File "basic.exts.md", line 261, characters 0-47
+  Blank line:
+  File "basic.exts.md", line 262
+  Paragraph:
+  File "basic.exts.md", line 263, characters 0-28
+    Inlines:
+    File "basic.exts.md", line 263, characters 0-28
+      Text:
+      File "basic.exts.md", line 263, characters 0-2
+      Link:
+      File "basic.exts.md", line 263, characters 2-26
+        Text:
+        File "basic.exts.md", line 263, characters 3-4
+        Label:
+        File "basic.exts.md", line 263, characters 6-25
+        Label definition:
+        File "basic.exts.md", line 266, characters 1-20
+      Text:
+      File "basic.exts.md", line 263, characters 26-28
   Blank line:
   File "basic.exts.md", line 264
+  Link reference definition:
+  File "basic.exts.md", line 266, characters 0-41
+    Label:
+    File "basic.exts.md", line 266, characters 1-20
+    Defined label:
+    File "basic.exts.md", line 266, characters 1-20
+    Destination:
+    File "basic.exts.md", line 266, characters 23-41
+  Blank line:
+  File "basic.exts.md", line 267

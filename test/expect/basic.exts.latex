@@ -450,6 +450,13 @@ Attributes can be nested: \href{example.com}{link % Attributes omitted
 , % Attributes omitted
 .
 
+Attributes can be attached without squares, for instance % Attributes omitted
+ has an
+id. This % Attributes omitted
+! This % Attributes omitted
+. % Attributes omitted
+.
+
 \subsubsection{Attributes definition}
 
 We can provide attributes% Unknown label definition type for a

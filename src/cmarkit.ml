@@ -2043,7 +2043,7 @@ module Inline_struct = struct
         in
         loop toks endline acc next
     | Attributes { start; next; attrs; position ; endline } :: toks ->
-       let i = Match.rightmost_blank p.i {line with last = start - 1} in
+        let i = Match.last_blank p.i ~first:k ~start:(start - 1) in
         let acc = try_add_text_inline p line ~first:k ~last:i acc in
         let acc = try_add_text_inline p line ~first:(i+1) ~last:(start - 1) acc in
         let acc = add_attr attrs position acc in

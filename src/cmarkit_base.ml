@@ -607,13 +607,10 @@ let accept_upto ~char ~next_line s lines ~line acc ~after =
   let start = after + 1 in
   loop ~char ~next_line s lines line ~prev_bslash:false start acc start
 
-let rec rightmost_blank s ~min ~start =
-  if start < min then min - 1 else match s.[start] with
+let rec last_blank s ~first ~start =
+  if start < first then first - 1 else match s.[start] with
   | ' ' | '\t' -> start
-  | _ -> rightmost_blank s ~min ~start:(start - 1)
-
-let rightmost_blank s (line : line_span) =
-  rightmost_blank s ~min:line.first ~start:line.last
+  | _ -> last_blank s ~first ~start:(start - 1)
 
 let first_non_blank_over_nl ~next_line s lines ~line ~start =
   let nb = first_non_blank s ~last:line.last ~start in

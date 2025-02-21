@@ -209,9 +209,6 @@ val first_non_blank : string -> last:byte_pos -> start:byte_pos -> byte_pos
     range \[[start];[last]\] that is not blank and [last + 1] if there
     is none. *)
 
-val rightmost_blank : string -> line_span -> byte_pos
-(** TODO. *)
-
 val first_non_blank_in_span : string -> line_span -> byte_pos
 (** [first_non_blank_in_span s span] is
     [first_non_blank s ~last:span.last ~start:span.first]. *)
@@ -220,6 +217,11 @@ val last_non_blank : string -> first:byte_pos -> start:byte_pos -> byte_pos
 (** [last_non_blank s ~first ~start] is the last position in the
     range \[[first];[start]\] that is non blank and [first - 1] if
     there is none. *)
+
+val last_blank : string -> first:byte_pos -> start:byte_pos -> byte_pos
+(** [last_blank s ~first ~start] is the last byte position in the
+    range \[[start];[last]\] that is blank and [first - 1] if there
+    is none. *)
 
 val rev_drop_spaces : string -> first:byte_pos -> start:byte_pos -> byte_pos
 (** [rev_drop_spaces s ~first ~start] is the last position in the
