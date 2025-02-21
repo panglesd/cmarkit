@@ -1196,7 +1196,12 @@ module Inline_struct = struct
   | Strikethrough_marks of strikethrough_marks
   | Math_span_marks of math_span_marks
   | Open_curly of curly_marks   (* Rename to Attribute_starts *)
-  | Attributes of {start : byte_pos ; next : byte_pos ; attrs : Attributes.t ; position : [`Standalone | `Attached ] ; endline : line_span }
+  | Attributes of
+      { start : byte_pos ;
+        next : byte_pos ;
+        attrs : Attributes.t ;
+        position : [`Standalone | `Attached ] ;
+        endline : line_span }
 
   let token_start = function
   | Autolink_or_html_start { start } | Backticks { start }
