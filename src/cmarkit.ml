@@ -2133,7 +2133,30 @@ module Inline_struct = struct
         in
         `Col ((text, (bbefore, bafter)), k)
 
-  let rec finish_col p line blanks_before is toks k = match toks with
+  let add_tok tok is =
+    let add_attr attrs position acc =
+      match position with
+      | `Standalone ->
+         let t =
+           Inline.Attributes_span.make (Inline.Inlines ([], Meta.none))
+             (attrs, Meta.none)
+         in
+         Inline.Ext_attrs (t, Meta.none) :: acc
+      | `Attached ->
+         match acc with
+         | i :: q ->
+            let t = Inline.Attributes_span.make i (attrs, Meta.none) in
+            Inline.Ext_attrs (t, Meta.none) :: q
+         | [] -> []
+    in
+    match tok with
+    | Inline { inline } -> inline :: is
+    | Attributes { start; next; attrs; position ; endline } ->
+       add_attr attrs position is
+    | _ -> is
+
+  let rec finish_col p line blanks_before is toks k =
+    match toks with
   | [] ->
       begin match find_pipe p line ~before:(line.last + 1) k with
       | `Found (text, after, k) ->
@@ -2141,39 +2164,40 @@ module Inline_struct = struct
           (make_col p is, (blanks_before, after)), [], k
       | `Not_found _ -> assert false
       end
-  | Inline { start; inline; next } :: toks when k >= start ->
-      finish_col p line blanks_before (inline :: is) toks next
-  | Inline { start; inline; next } :: toks as toks' ->
+  | (Inline { start; next } | Attributes { start; next }) as tok :: toks when k >= start ->
+      finish_col p line blanks_before (add_tok tok is) toks next
+  | (Inline { start; next } | Attributes { start; next }) as tok :: toks as toks' ->
       begin match find_pipe p line ~before:start k with
       | `Not_found text ->
-          let is = inline :: text :: is in
+          let is = add_tok tok (text :: is) in
           finish_col p line blanks_before is toks next
       | `Found (text, after, k) ->
           let is = match text with Some t -> t :: is | None -> is in
           (make_col p is, (blanks_before, after)), toks', k
       end
   | (Backticks _ | Autolink_or_html_start _ | Link_start _ | Right_brack _
-    | Emphasis_marks _ | Right_paren _ | Strikethrough_marks _ | Open_curly _ | Attributes _
+    | Emphasis_marks _ | Right_paren _ | Strikethrough_marks _ | Open_curly _
     | Math_span_marks _ | Newline _ ) :: _ ->
       assert false
 
-  let rec parse_cols p line acc toks k = match toks with
+  let rec parse_cols p line acc toks k =
+    match toks with
   | [] ->
       if k > line.last then (List.rev acc) else
       begin match start_col p line ~before:(line.last + 1) k with
       | `Col (col, k) -> parse_cols p line (col :: acc) [] k
       | `Start _ -> assert false
       end
-  | Inline { start; inline; next } :: toks as toks' ->
+  | (Inline { start; next } | Attributes { start; next }) as tok :: toks as toks' ->
       begin match start_col p line ~before:start k with
       | `Col (col, k) -> parse_cols p line (col :: acc) toks' k
       | `Start (before, is) ->
-          let is = inline :: is in
+          let is = add_tok tok is in
           let col, toks, k = finish_col p line before is toks next in
           parse_cols p line (col :: acc) toks k
       end
   | (Backticks _ | Autolink_or_html_start _ | Link_start _ | Right_brack _
-    | Emphasis_marks _ | Right_paren _ | Strikethrough_marks _ | Open_curly _ | Attributes _
+    | Emphasis_marks _ | Right_paren _ | Strikethrough_marks _ | Open_curly _
     | Math_span_marks _ | Newline _ ) :: _ ->
       assert false
 
