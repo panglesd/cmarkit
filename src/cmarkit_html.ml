@@ -133,7 +133,7 @@ let add_attr c (key, value) = match value with
   | Some value -> C.string c (" " ^ key ^ "=" ^ value);
   | None -> C.string c (" " ^ key)
 
-let add_attrs c ?(include_id = true) attrs =
+let add_attrs c attrs =
   let kv_attrs =
     let kv_attrs = Cmarkit.Attributes.kv_attributes attrs in
     List.map
@@ -152,8 +152,8 @@ let add_attrs c ?(include_id = true) attrs =
   let id =
     let id = Cmarkit.Attributes.id attrs in
     match id with
-    | Some (id, _) when include_id -> ["id", Some ("\""^id^"\"") ]
-    | _ -> []
+    | Some (id, _) -> ["id", Some ("\""^id^"\"") ]
+    | None -> []
   in
   let attrs = id @ class' @ kv_attrs in
   List.iter (add_attr c) attrs
