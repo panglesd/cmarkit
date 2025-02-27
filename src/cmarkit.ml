@@ -2047,6 +2047,10 @@ module Inline_struct = struct
            Inline.Text ((a, (attrs, Meta.none)), meta) :: q
            (* let t = Inline.Attributes_span.make i (attrs, Meta.none) in *)
            (* Inline.Ext_attrs (t, Meta.none) :: q *)
+        | Inline.Ext_strikethrough ((a, _old_attrs), meta) :: q ->
+           Inline.Ext_strikethrough ((a, (attrs, Meta.none)), meta) :: q
+        | Inline.Ext_math_span ((a, _old_attrs), meta) :: q ->
+           Inline.Ext_math_span ((a, (attrs, Meta.none)), meta) :: q
         | _ ->
           let t =
            Inline.Attributes_span.make (Inline.Inlines ([], Meta.none))

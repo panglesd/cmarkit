@@ -91,7 +91,7 @@ and inline ~indent:n ppf = function
         (loc "Emphasis" ~indent:n) m (inline ~indent:(n + 2)) i
 | Inline.Image ((i, _TODO), m) ->
     link "Image" ~indent:n ppf ((i, Attributes.empty), m)
-| Inline.Inlines ((is, _TODO), m) ->
+| Inline.Inlines (is, m) ->
     pf ppf "@[<v>%a%a@]"
       (loc "Inlines" ~indent:n) m (inlines ~indent:(n + 2)) is
 | Inline.Link ((l, _TODO), m) ->

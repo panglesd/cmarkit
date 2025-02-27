@@ -371,10 +371,14 @@ let inline c = function
 | Inline.Link ((l, (attrs, _)), _) -> link c l attrs; true
 | Inline.Raw_html (html, _) -> raw_html c html; true
 | Inline.Strong_emphasis ((e, (attrs, _)), _) -> strong_emphasis c e attrs; true
-| Inline.Text ((t, (_TODO, _)), _) -> html_escaped_string c t; true
+| Inline.Text ((t, (attrs, _)), _) ->
+   (with_attrs_span ~with_newline:false c attrs @@ fun () -> html_escaped_string c t);
+   true
 | Inline.Ext_strikethrough ((s, (attrs, _)), _) -> strikethrough c s attrs; true
 | Inline.Ext_attrs (as', _) -> attribute_span c as'; true
-| Inline.Ext_math_span ((ms, (_TODO, _)), _) -> math_span c ms; true
+| Inline.Ext_math_span ((ms, (attrs, _)), _) ->
+   (with_attrs_span ~with_newline:false c attrs @@ fun () -> math_span c ms);
+   true
 | _ -> comment c "<!-- Unknown Cmarkit inline -->"; true
 
 (* Block rendering *)
