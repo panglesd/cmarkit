@@ -408,14 +408,22 @@ let code_block c attrs cb =
 let heading c attrs h =
   let level = string_of_int (Block.Heading.level h) in
   C.string c "<h"; C.string c level;
-  add_attrs c ~include_id:false attrs;
-  begin match Block.Heading.id h with
-  | None -> C.byte c '>';
-  | Some (`Auto id | `Id id) ->
-      let id = unique_id c id in
-      let id = match Cmarkit.Attributes.id attrs with None -> id | Some (id, _) -> id in
-      C.string c " id=\""; C.string c id;
-      C.string c "\"><a class=\"anchor\" aria-hidden=\"true\" href=\"#";
+  let attrs =
+    match Block.Heading.id h with
+    | None -> attrs
+    | Some (`Auto id | `Id id) ->
+       match Attributes.id attrs with
+         None ->
+          let id = unique_id c id in
+          Attributes.set_id attrs (id, Meta.none)
+       | Some id -> attrs
+  in
+  add_attrs c attrs;
+  C.byte c '>';
+  begin match Attributes.id attrs with
+  | None -> ()
+  | Some (id, _) ->
+      C.string c "<a class=\"anchor\" aria-hidden=\"true\" href=\"#";
       C.string c id; C.string c "\"></a>";
   end;
   C.inline c (Block.Heading.inline h);
