@@ -367,7 +367,7 @@ let inline c = function
 | Inline.Code_span ((cs, (attrs, _)), _) -> code_span c cs attrs; true
 | Inline.Emphasis ((e, (attrs, _)), _) -> emphasis c e attrs; true
 | Inline.Image ((i, (attrs, _)), _) -> image c i attrs; true
-| Inline.Inlines ((is, (_TODO, _)), _) -> List.iter (C.inline c) is; true
+| Inline.Inlines (is, _) -> List.iter (C.inline c) is; true
 | Inline.Link ((l, (attrs, _)), _) -> link c l attrs; true
 | Inline.Raw_html (html, _) -> raw_html c html; true
 | Inline.Strong_emphasis ((e, (attrs, _)), _) -> strong_emphasis c e attrs; true

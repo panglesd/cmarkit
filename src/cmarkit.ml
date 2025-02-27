@@ -410,13 +410,13 @@ module Inline = struct
   | Code_span of Code_span.t attributed node
   | Emphasis of Emphasis.t attributed node
   | Image of Link.t attributed node
-  | Inlines of t list attributed node
+  | Inlines of t list node
   | Link of Link.t attributed node
   | Raw_html of Raw_html.t node
   | Strong_emphasis of Emphasis.t attributed node
   | Text of Text.t attributed node
 
-  let empty = Inlines (([], (Attributes.empty, Meta.none)), Meta.none)
+  let empty = Inlines ([], Meta.none)
 
   let err_unknown = "Unknown Cmarkit.Inline.t type extension"
 
@@ -453,7 +453,7 @@ module Inline = struct
   (* Functions on inlines *)
 
   let is_empty = function
-  | Text (("", _), _) | Inlines (([], _), _) -> true | _ -> false
+  | Text (("", _), _) | Inlines ([], _) -> true | _ -> false
 
   let ext_none _ = invalid_arg err_unknown
   let meta ?(ext = ext_none) = function
@@ -466,18 +466,17 @@ module Inline = struct
 
   let rec normalize ?(ext = ext_none) = function
   | Autolink _ | Break _ | Code_span _ | Raw_html _ | Text _
-  | Inlines (([], _), _) | Ext_math_span _ | Ext_attrs _ as i -> i
+  | Inlines ([], _) | Ext_math_span _ | Ext_attrs _ as i -> i
   | Image ((l, attrs), m) -> Image (({ l with text = normalize ~ext l.text }, attrs), m)
   | Link ((l, attrs), m) -> Link (({ l with text = normalize ~ext l.text }, attrs), m)
-  | Inlines (([i], ({class' = []; id = None ; kv_attributes = [] }, _)), _) -> i
+  | Inlines (([i]), _) -> i
   | Emphasis ((e, attrs), m) ->
       Emphasis (({ e with inline = normalize ~ext e.inline}, attrs), m)
   | Strong_emphasis ((e, attrs), m) ->
       Strong_emphasis (({ e with inline = normalize ~ext e.inline}, attrs), m)
-  | Inlines ((i :: is, attrs), m) ->
-     (* TODO: attrs *)
+  | Inlines (i :: is, m) ->
       let rec loop acc = function
-      | Inlines ((is', attrs), m) :: is -> loop acc (List.rev_append (List.rev is') is)
+      | Inlines (is', m) :: is -> loop acc (List.rev_append (List.rev is') is)
       | Text ((t', attrs), m') as i' :: is ->
           begin match acc with
           | Text ((t, attrs), m) :: acc ->
@@ -511,7 +510,7 @@ module Inline = struct
         loop ~break_on_soft (push (Code_span.code cs) acc) is
     | Emphasis (({ inline }, _), _) :: is | Strong_emphasis (({ inline }, _), _) :: is ->
         loop ~break_on_soft acc (inline :: is)
-    | Inlines ((is', _), _) :: is ->
+    | Inlines (is', _) :: is ->
         loop ~break_on_soft acc (List.rev_append (List.rev is') is)
     | Link ((l, _), _) :: is | Image ((l, _), _) :: is ->
         loop ~break_on_soft acc (l.text :: is)
@@ -1438,8 +1437,7 @@ module Inline_struct = struct
   | [i] -> i
   | is ->
       let textloc = textloc_of_lines p ~first ~last ~first_line ~last_line in
-      let attrs = Attributes.empty, Meta.none in
-      Inline.Inlines ((is, attrs), meta p textloc)
+      Inline.Inlines (is, meta p textloc)
 
   let code_span_token p ~count ~first ~last ~first_line ~last_line rev_spans =
     let textloc = textloc_of_lines p ~first ~last ~first_line ~last_line in
@@ -1828,8 +1826,7 @@ module Inline_struct = struct
               let (attrs, _) =
                 attributes p (attrs, ()) (Attributes.empty, None) last
               in
-              let e_attrs = Attributes.empty, Meta.none in
-              let attrs = Inline.Attributes_span.make (Inline.Inlines ((text, e_attrs), Meta.none)) (attrs, Meta.none) in
+              let attrs = Inline.Attributes_span.make (Inline.Inlines (text, Meta.none)) (attrs, Meta.none) in
               let inline = Inline.Ext_attrs (attrs, Meta.none) in
               let t = Inline { start; inline; endline; next = last + 1 } in
               Some (toks, endline, t, false)
@@ -2028,7 +2025,7 @@ module Inline_struct = struct
       match position with
       | `Standalone ->
          let t =
-           Inline.Attributes_span.make (Inline.Inlines (([], (Attributes.empty, Meta.none) (* TODO: attrs *)), Meta.none))
+           Inline.Attributes_span.make (Inline.Inlines ([], Meta.none))
              (attrs, Meta.none)
          in
          Inline.Ext_attrs (t, Meta.none) :: acc
@@ -2042,8 +2039,6 @@ module Inline_struct = struct
            Inline.Emphasis ((a, (attrs, Meta.none)), meta) :: q
         | Inline.Image ((a, _old_attrs), meta) :: q ->
            Inline.Image ((a, (attrs, Meta.none)), meta) :: q
-        | Inline.Inlines ((a, _old_attrs), meta) :: q ->
-           Inline.Inlines ((a, (attrs, Meta.none)), meta) :: q
         | Inline.Link ((a, _old_attrs), meta) :: q ->
            Inline.Link ((a, (attrs, Meta.none)), meta) :: q
         | Inline.Strong_emphasis ((a, _old_attrs), meta) :: q ->
@@ -2052,10 +2047,11 @@ module Inline_struct = struct
            Inline.Text ((a, (attrs, Meta.none)), meta) :: q
            (* let t = Inline.Attributes_span.make i (attrs, Meta.none) in *)
            (* Inline.Ext_attrs (t, Meta.none) :: q *)
-        | _ ->          let t =
-           Inline.Attributes_span.make (Inline.Inlines (([], (Attributes.empty, Meta.none) (* TODO: attrs *)), Meta.none))
+        | _ ->
+          let t =
+           Inline.Attributes_span.make (Inline.Inlines ([], Meta.none))
              (attrs, Meta.none)
-         in
+          in
          Inline.Ext_attrs (t, Meta.none) :: acc
 
     in
@@ -2069,7 +2065,7 @@ module Inline_struct = struct
     | Inline { start; inline; endline; next } :: toks ->
         let acc = try_add_text_inline p line ~first:k ~last:(start - 1) acc in
         let acc = match inline with
-        | Inline.Inlines ((is, ({id = None ; class' = [] ; kv_attributes = []}, _)), _meta_stub) -> List.rev_append (List.rev is) acc
+        | Inline.Inlines (is, _meta_stub) -> List.rev_append (List.rev is) acc
         | i -> i :: acc
         in
         loop toks endline acc next
@@ -2118,7 +2114,7 @@ module Inline_struct = struct
     let cidx, toks, first_line = tokenize ~exts:p.exts p.i lines in
     p.cidx <- cidx;
     let is, _had_link = parse_tokens p toks first_line in
-    let inline = match is with [i] -> i | is -> Inline.Inlines ((is, (Attributes.empty, Meta.none)), meta) in
+    let inline = match is with [i] -> i | is -> Inline.Inlines (is, meta) in
     layout, inline
 
   (* Parsing table rows *)
@@ -2135,7 +2131,7 @@ module Inline_struct = struct
       let is = List.rev is in
       let first = Inline.meta (List.hd is) in
       let meta = meta_of_metas p ~first ~last in
-      Inline.Inlines ((is, (Attributes.empty, Meta.none) (* TODO: attrs *)), meta)
+      Inline.Inlines (is, meta)
 
   let find_pipe p line ~before k =
     let text p ~first ~last =
@@ -2161,7 +2157,7 @@ module Inline_struct = struct
         | Some text -> text
         | None ->
             let l = textloc_of_span p { line with first = k; last = k - 1 }in
-            (Inline.Inlines (([], (Attributes.empty, Meta.none) (* TODO: attrs *)), meta p l))
+            (Inline.Inlines ([], meta p l))
         in
         `Col ((text, (bbefore, bafter)), k)
 
@@ -2170,7 +2166,7 @@ module Inline_struct = struct
       match position with
       | `Standalone ->
          let t =
-           Inline.Attributes_span.make (Inline.Inlines (([], assert false (* TODO: attrs *)), Meta.none))
+           Inline.Attributes_span.make (Inline.Inlines ([], Meta.none))
              (attrs, Meta.none)
          in
          Inline.Ext_attrs (t, Meta.none) :: acc
@@ -3548,9 +3544,9 @@ module Mapper = struct
       | Strong_emphasis ((e, attrs), meta) ->
           let* inline = map_inline m e.inline in
           Some (Strong_emphasis (({ e with inline}, attrs), meta))
-      | Inlines ((is, attrs), meta) ->
+      | Inlines (is, meta) ->
           (match List.filter_map (map_inline m) is with
-          | [] -> None | is -> Some (Inlines ((is, attrs), meta)))
+          | [] -> None | is -> Some (Inlines (is, meta)))
       | Ext_strikethrough ((s, attrs), meta) ->
           let* inline = map_inline m s in
           Some (Ext_strikethrough ((inline, attrs), meta))
@@ -3560,7 +3556,7 @@ module Mapper = struct
            Attributes.map m.attrs attrs, meta
          in
          let content = map_inline m content in
-         let content = Option.value ~default:(Inline.Inlines (([], attrs), Meta.none)) content in
+         let content = Option.value ~default:(Inline.Inlines ([], Meta.none)) content in
           Some (Ext_attrs ({content ; attrs}, meta))
       | ext -> m.inline_ext_default m ext
 
@@ -3592,7 +3588,7 @@ module Mapper = struct
       | Heading ((h, attrs), meta) ->
           let attrs = map_attrs attrs in
           let inline = match map_inline m (Block.Heading.inline h) with
-          | None -> (* Can be empty *) Inline.Inlines (([], (Attributes.empty, Meta.none)), Meta.none)
+          | None -> (* Can be empty *) Inline.Inlines ([], Meta.none)
           | Some i -> i
           in
           Some (Heading (({ h with inline}, attrs), meta))
@@ -3696,7 +3692,7 @@ module Folder = struct
       | Image ((l, _), _) | Link ((l, _), _) -> fold_inline f acc l.text
       | Emphasis (({ inline }, _), _) -> fold_inline f acc inline
       | Strong_emphasis (({ inline }, _), _) -> fold_inline f acc inline
-      | Inlines ((is, _), _) -> List.fold_left (fold_inline f) acc is
+      | Inlines (is, _) -> List.fold_left (fold_inline f) acc is
       | Ext_strikethrough ((inline, _), _) -> fold_inline f acc inline
 
   | ext -> f.inline_ext_default f acc ext

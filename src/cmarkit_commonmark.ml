@@ -304,7 +304,7 @@ let inline c = function
 | Inline.Code_span ((cs, _TODO), _) -> code_span c cs; true
 | Inline.Emphasis ((e, _TODO), _) -> emphasis c e; true
 | Inline.Image ((i, _TODO), _) -> image c i; true
-| Inline.Inlines ((is, _TODO), _) -> inlines c is; true
+| Inline.Inlines (is, _) -> inlines c is; true
 | Inline.Link ((l, _TODO), _) -> link c l; true
 | Inline.Raw_html (html, _) -> raw_html c html; true
 | Inline.Strong_emphasis ((e, _TODO), _) -> strong_emphasis c e; true

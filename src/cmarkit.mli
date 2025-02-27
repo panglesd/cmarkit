@@ -890,7 +890,7 @@ module Inline : sig
   | Code_span of Code_span.t attributed node
   | Emphasis of Emphasis.t attributed node
   | Image of Link.t attributed node
-  | Inlines of t list attributed node (** Splicing *)
+  | Inlines of t list node (** Splicing *)
   | Link of Link.t attributed node
   | Raw_html of Raw_html.t node
   | Strong_emphasis of Emphasis.t attributed node
