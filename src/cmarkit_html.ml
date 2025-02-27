@@ -306,14 +306,7 @@ let link c l attrs = match Inline.Link.reference_definition (C.get_defs c) l wit
     let link, title = link_dest_and_title c ld in
     C.string c "<a href=\""; pct_encoded_string c link;
     C.string c "\"";
-    add_attrs c ~include_id:false attributes;
-    let id = Attributes.id attributes in
-    (match id with
-       None -> ()
-     | Some (id, _) ->
-        C.string c " id=\"";
-        html_escaped_string c id;
-        C.string c "\"";);
+    add_attrs c attributes;
     if title <> "" then
       (C.string c " title=\""; html_escaped_string c title; C.string c "\"");
     C.string c ">"; C.inline c (Inline.Link.text l); C.string c "</a>"
