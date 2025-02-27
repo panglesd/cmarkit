@@ -883,16 +883,16 @@ module Inline : sig
   end
 
   type t +=
-  | Autolink of Autolink.t node
+  | Autolink of Autolink.t attributed node
   | Break of Break.t node
-  | Code_span of Code_span.t node
-  | Emphasis of Emphasis.t node
-  | Image of Link.t node
-  | Inlines of t list node (** Splicing *)
-  | Link of Link.t node
+  | Code_span of Code_span.t attributed node
+  | Emphasis of Emphasis.t attributed node
+  | Image of Link.t attributed node
+  | Inlines of t list attributed node (** Splicing *)
+  | Link of Link.t attributed node
   | Raw_html of Raw_html.t node
-  | Strong_emphasis of Emphasis.t node
-  | Text of Text.t node (** *)
+  | Strong_emphasis of Emphasis.t attributed node
+  | Text of Text.t attributed node (** *)
   (** The
       CommonMark {{:https://spec.commonmark.org/0.30/#inlines}inlines}. *)
 
@@ -951,8 +951,8 @@ module Inline : sig
   end
 
   type t +=
-  | Ext_strikethrough of Strikethrough.t node
-  | Ext_math_span of Math_span.t node
+  | Ext_strikethrough of Strikethrough.t attributed node
+  | Ext_math_span of Math_span.t attributed node
   | Ext_attrs of Attributes_span.t node (** *)
   (** The supported inline extensions. These inlines are only parsed when
       {!Doc.of_string} is called with [strict:false]. *)

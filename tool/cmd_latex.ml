@@ -21,7 +21,7 @@ let buffer_add_inline_preambles b files =
   in
   List.iter (add_file b) files
 
-let text_inline t = Inline.Text (t, Meta.none)
+let text_inline t = Inline.Text ((t, (Attributes.empty, Meta.none)), Meta.none)
 let untilted_inline = text_inline "Untilted"
 
 let lift_headings_map ~extract_title doc =

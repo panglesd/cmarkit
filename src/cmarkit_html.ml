@@ -349,19 +349,19 @@ let attribute_span c as' =
   C.inline c content
 
 let inline c = function
-| Inline.Autolink (a, _) -> autolink c a; true
+| Inline.Autolink ((a, _TODO), _) -> autolink c a; true
 | Inline.Break (b, _) -> break c b; true
-| Inline.Code_span (cs, _) -> code_span c cs; true
-| Inline.Emphasis (e, _) -> emphasis c e; true
-| Inline.Image (i, _) -> image c i; true
-| Inline.Inlines (is, _) -> List.iter (C.inline c) is; true
-| Inline.Link (l, _) -> link c l; true
+| Inline.Code_span ((cs, _TODO), _) -> code_span c cs; true
+| Inline.Emphasis ((e, _TODO), _) -> emphasis c e; true
+| Inline.Image ((i, _TODO), _) -> image c i; true
+| Inline.Inlines ((is, _TODO), _) -> List.iter (C.inline c) is; true
+| Inline.Link ((l, _TODO), _) -> link c l; true
 | Inline.Raw_html (html, _) -> raw_html c html; true
-| Inline.Strong_emphasis (e, _) -> strong_emphasis c e; true
-| Inline.Text (t, _) -> html_escaped_string c t; true
-| Inline.Ext_strikethrough (s, _) -> strikethrough c s; true
+| Inline.Strong_emphasis ((e, _TODO), _) -> strong_emphasis c e; true
+| Inline.Text ((t, _TODO), _) -> html_escaped_string c t; true
+| Inline.Ext_strikethrough ((s, _TODO), _) -> strikethrough c s; true
 | Inline.Ext_attrs (as', _) -> attribute_span c as'; true
-| Inline.Ext_math_span (ms, _) -> math_span c ms; true
+| Inline.Ext_math_span ((ms, _TODO), _) -> math_span c ms; true
 | _ -> comment c "<!-- Unknown Cmarkit inline -->"; true
 
 (* Block rendering *)
@@ -561,7 +561,7 @@ let xhtml_block c = function
 let xhtml_inline c = function
 | Inline.Break (b, _) when Inline.Break.type' b = `Hard ->
     C.string c "<br />\n"; true
-| Inline.Image (i, _) ->
+| Inline.Image ((i, _TODO), _) ->
     image ~close:" />" c i; true
 | i -> inline c i
 
