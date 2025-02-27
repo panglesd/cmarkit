@@ -209,11 +209,13 @@ let block_lines c = function (* newlines only between lines *)
 
 (* Inline rendering *)
 
-let autolink c a =
+let autolink c a attrs =
   let pre = if Inline.Autolink.is_email a then "mailto:" else "" in
   let url = pre ^ (fst (Inline.Autolink.link a)) in
   let url = if Inline.Link.is_unsafe url then "" else url in
-  C.string c "<a href=\""; pct_encoded_string c url; C.string c "\">";
+  C.string c "<a href=\""; pct_encoded_string c url;
+  add_attrs c attrs;
+  C.string c "\">";
   html_escaped_string c (fst (Inline.Autolink.link a));
   C.string c "</a>"
 
@@ -221,16 +223,23 @@ let break c b = match Inline.Break.type' b with
 | `Hard -> C.string c "<br>\n"
 | `Soft -> C.byte c '\n'
 
-let code_span c cs =
-  C.string c "<code>";
+let code_span c cs attrs =
+  C.string c "<code";
+  add_attrs c attrs;
+  C.string c ">";
   html_escaped_string c (Inline.Code_span.code cs);
   C.string c "</code>"
 
-let emphasis c e =
-  C.string c "<em>"; C.inline c (Inline.Emphasis.inline e); C.string c "</em>"
+let emphasis c e attrs =
+  C.string c "<em";
+  add_attrs c attrs;
+  C.string c ">";
+  C.inline c (Inline.Emphasis.inline e); C.string c "</em>"
 
-let strong_emphasis c e =
-  C.string c "<strong>";
+let strong_emphasis c e attrs =
+  C.string c "<strong";
+  add_attrs c attrs;
+  C.string c ">";
   C.inline c (Inline.Emphasis.inline e);
   C.string c "</strong>"
 
@@ -246,9 +255,10 @@ let link_dest_and_title c ld =
   in
   dest, title
 
-let image ?(close = " >") c i =
+let image ?(close = " >") c i attrs =
   match Inline.Link.reference_definition (C.get_defs c) i with
   | Some (Link_definition.Def ((ld, (attributes, _)), _)) ->
+     let attributes = Attributes.merge ~base:attributes ~new_attrs:attrs in
       let plain_text c i =
         let lines = Inline.to_plain_text ~break_on_soft:false i in
         String.concat "\n" (List.map (String.concat "") lines)
@@ -290,8 +300,9 @@ let link_footnote c l fn =
     C.string c text; C.string c "</a></sup>"
   end
 
-let link c l = match Inline.Link.reference_definition (C.get_defs c) l with
+let link c l attrs = match Inline.Link.reference_definition (C.get_defs c) l with
 | Some (Link_definition.Def ((ld, (attributes, _)), _)) ->
+    let attributes = Attributes.merge ~base:attributes ~new_attrs:attrs in
     let link, title = link_dest_and_title c ld in
     C.string c "<a href=\""; pct_encoded_string c link;
     C.string c "\"";
@@ -324,8 +335,10 @@ let raw_html c h =
   if h <> []
   then (C.string c (fst (snd (List.hd h))); List.iter (line c) (List.tl h))
 
-let strikethrough c s =
-  C.string c "<del>";
+let strikethrough c s attrs =
+  C.string c "<del";
+  add_attrs c attrs;
+  C.string c ">";
   C.inline c (Inline.Strikethrough.inline s);
   C.string c "</del>"
 
@@ -349,19 +362,19 @@ let attribute_span c as' =
   C.inline c content
 
 let inline c = function
-| Inline.Autolink ((a, _TODO), _) -> autolink c a; true
+| Inline.Autolink ((a, (attrs, _)), _) -> autolink c a attrs; true
 | Inline.Break (b, _) -> break c b; true
-| Inline.Code_span ((cs, _TODO), _) -> code_span c cs; true
-| Inline.Emphasis ((e, _TODO), _) -> emphasis c e; true
-| Inline.Image ((i, _TODO), _) -> image c i; true
-| Inline.Inlines ((is, _TODO), _) -> List.iter (C.inline c) is; true
-| Inline.Link ((l, _TODO), _) -> link c l; true
+| Inline.Code_span ((cs, (attrs, _)), _) -> code_span c cs attrs; true
+| Inline.Emphasis ((e, (attrs, _)), _) -> emphasis c e attrs; true
+| Inline.Image ((i, (attrs, _)), _) -> image c i attrs; true
+| Inline.Inlines ((is, (_TODO, _)), _) -> List.iter (C.inline c) is; true
+| Inline.Link ((l, (attrs, _)), _) -> link c l attrs; true
 | Inline.Raw_html (html, _) -> raw_html c html; true
-| Inline.Strong_emphasis ((e, _TODO), _) -> strong_emphasis c e; true
-| Inline.Text ((t, _TODO), _) -> html_escaped_string c t; true
-| Inline.Ext_strikethrough ((s, _TODO), _) -> strikethrough c s; true
+| Inline.Strong_emphasis ((e, (attrs, _)), _) -> strong_emphasis c e attrs; true
+| Inline.Text ((t, (_TODO, _)), _) -> html_escaped_string c t; true
+| Inline.Ext_strikethrough ((s, (attrs, _)), _) -> strikethrough c s attrs; true
 | Inline.Ext_attrs (as', _) -> attribute_span c as'; true
-| Inline.Ext_math_span ((ms, _TODO), _) -> math_span c ms; true
+| Inline.Ext_math_span ((ms, (_TODO, _)), _) -> math_span c ms; true
 | _ -> comment c "<!-- Unknown Cmarkit inline -->"; true
 
 (* Block rendering *)
@@ -561,8 +574,8 @@ let xhtml_block c = function
 let xhtml_inline c = function
 | Inline.Break (b, _) when Inline.Break.type' b = `Hard ->
     C.string c "<br />\n"; true
-| Inline.Image ((i, _TODO), _) ->
-    image ~close:" />" c i; true
+| Inline.Image ((i, (attrs, _)), _) ->
+    image ~close:" />" c i attrs; true
 | i -> inline c i
 
 (* Document rendering *)

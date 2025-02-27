@@ -234,8 +234,7 @@ Similarly, at the end, they work []
 {as=well}
 
 Without specified delimitations, inline attributes are either []
-{standalone} or attached to the [left-closest]
-{word}.
+{standalone} or attached to the left-closest.
 
 Inline attributes can [refer to many]
 {words} including [with **inline**]
@@ -248,12 +247,8 @@ link](example.com)]
 {attrs1}]
 {attrs2}.
 
-Attributes can be attached without squares, for instance [this]
-{#idee} has an
-id. This [`codeblock`]
-{#too}! This [![image](as)]
-{#well}. [[Links](work)]
-{#the .same}.
+Attributes can be attached without squares, for instance this has an
+id. This `codeblock`! This ![image](as). [Links](work).
 
 ### Attributes definition
 
@@ -274,3 +269,4 @@ A [b][link-def-with-attrs] c
 
 {.present}
 [link-def-with-attrs]: http://example.com
+

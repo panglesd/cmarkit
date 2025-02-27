@@ -1,5 +1,5 @@
 Blocks:
-File "basic.exts.md", lines 1-267
+File "basic.exts.md", lines 1-268
   Heading, level 1:
   File "basic.exts.md", line 1, characters 0-12
     Text:
@@ -1414,10 +1414,8 @@ File "basic.exts.md", lines 1-267
         File "-"
       Text:
       File "basic.exts.md", line 237, characters 74-94
-      Attributes:
-      File "-"
-        Text:
-        File "basic.exts.md", line 237, characters 94-106
+      Text:
+      File "basic.exts.md", line 237, characters 94-106
       Text:
       File "basic.exts.md", line 237, characters 112-113
   Blank line:
@@ -1522,10 +1520,8 @@ File "basic.exts.md", lines 1-267
     File "basic.exts.md", lines 244-245, characters 0-80
       Text:
       File "basic.exts.md", line 244, characters 0-57
-      Attributes:
-      File "-"
-        Text:
-        File "basic.exts.md", line 244, characters 57-61
+      Text:
+      File "basic.exts.md", line 244, characters 57-61
       Text:
       File "basic.exts.md", line 244, characters 68-75
       Soft break:
@@ -1536,36 +1532,30 @@ File "basic.exts.md", lines 1-267
         File "basic.exts.md", line 245
       Text:
       File "basic.exts.md", line 245, characters 0-9
-      Attributes:
-      File "-"
-        Code span:
-        File "basic.exts.md", line 245, characters 9-20
-          Code span line:
-          File "basic.exts.md", line 245, characters 10-19
+      Code span:
+      File "basic.exts.md", line 245, characters 9-20
+        Code span line:
+        File "basic.exts.md", line 245, characters 10-19
       Text:
       File "basic.exts.md", line 245, characters 26-33
-      Attributes:
-      File "-"
-        Image:
-        File "basic.exts.md", line 245, characters 33-45
-          Text:
-          File "basic.exts.md", line 245, characters 35-40
-          Inline:
-          File "basic.exts.md", line 245, characters 41-45
-          Destination:
-          File "basic.exts.md", line 245, characters 42-44
+      Image:
+      File "basic.exts.md", line 245, characters 33-45
+        Text:
+        File "basic.exts.md", line 245, characters 35-40
+        Inline:
+        File "basic.exts.md", line 245, characters 41-45
+        Destination:
+        File "basic.exts.md", line 245, characters 42-44
       Text:
       File "basic.exts.md", line 245, characters 52-54
-      Attributes:
-      File "-"
-        Link:
-        File "basic.exts.md", line 245, characters 54-67
-          Text:
-          File "basic.exts.md", line 245, characters 55-60
-          Inline:
-          File "basic.exts.md", line 245, characters 61-67
-          Destination:
-          File "basic.exts.md", line 245, characters 62-66
+      Link:
+      File "basic.exts.md", line 245, characters 54-67
+        Text:
+        File "basic.exts.md", line 245, characters 55-60
+        Inline:
+        File "basic.exts.md", line 245, characters 61-67
+        Destination:
+        File "basic.exts.md", line 245, characters 62-66
       Text:
       File "basic.exts.md", line 245, characters 79-80
   Blank line:
@@ -1695,3 +1685,5 @@ Unknown Cmarkit block
     File "basic.exts.md", line 266, characters 23-41
   Blank line:
   File "basic.exts.md", line 267
+  Blank line:
+  File "basic.exts.md", line 268

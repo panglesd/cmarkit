@@ -2034,10 +2034,30 @@ module Inline_struct = struct
          Inline.Ext_attrs (t, Meta.none) :: acc
       | `Attached ->
         match acc with
-        | i :: q ->
-           let t = Inline.Attributes_span.make i (attrs, Meta.none) in
-           Inline.Ext_attrs (t, Meta.none) :: q
-        | [] -> []
+        | Inline.Autolink ((a, _old_attrs), meta) :: q ->
+           Inline.Autolink ((a, (attrs, Meta.none)), meta) :: q
+        | Inline.Code_span ((a, _old_attrs), meta) :: q ->
+           Inline.Code_span ((a, (attrs, Meta.none)), meta) :: q
+        | Inline.Emphasis ((a, _old_attrs), meta) :: q ->
+           Inline.Emphasis ((a, (attrs, Meta.none)), meta) :: q
+        | Inline.Image ((a, _old_attrs), meta) :: q ->
+           Inline.Image ((a, (attrs, Meta.none)), meta) :: q
+        | Inline.Inlines ((a, _old_attrs), meta) :: q ->
+           Inline.Inlines ((a, (attrs, Meta.none)), meta) :: q
+        | Inline.Link ((a, _old_attrs), meta) :: q ->
+           Inline.Link ((a, (attrs, Meta.none)), meta) :: q
+        | Inline.Strong_emphasis ((a, _old_attrs), meta) :: q ->
+           Inline.Strong_emphasis ((a, (attrs, Meta.none)), meta) :: q
+        | Inline.Text ((a, _old_attrs), meta) :: q ->
+           Inline.Text ((a, (attrs, Meta.none)), meta) :: q
+           (* let t = Inline.Attributes_span.make i (attrs, Meta.none) in *)
+           (* Inline.Ext_attrs (t, Meta.none) :: q *)
+        | _ ->          let t =
+           Inline.Attributes_span.make (Inline.Inlines (([], (Attributes.empty, Meta.none) (* TODO: attrs *)), Meta.none))
+             (attrs, Meta.none)
+         in
+         Inline.Ext_attrs (t, Meta.none) :: acc
+
     in
     let rec loop ?attrs toks line acc k = match toks with
     | [] ->

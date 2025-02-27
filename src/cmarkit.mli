@@ -329,6 +329,8 @@ module Attributes : sig
      | `Kv of (key node) * value node option ]
        option) ->
     t -> t
+
+  val merge : base:t -> new_attrs:t -> t
 end
 
 type 'a attributed = 'a * Attributes.t node
