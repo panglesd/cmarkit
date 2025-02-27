@@ -489,7 +489,7 @@ module Inline = struct
       | [] -> List.rev acc
       in
       let is = loop [normalize ~ext i] is in
-      (match is with [i] -> i | _ -> (* Inlines (is, m) *) assert false (* TODO: attrs *))
+      (match is with [i] -> i | _ -> Inlines (is, m))
   | Ext_strikethrough ((i, attrs), m) -> Ext_strikethrough ((normalize ~ext i, attrs), m)
   | i -> ext i
 
