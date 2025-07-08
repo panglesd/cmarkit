@@ -750,10 +750,10 @@ let attribute_value ~allow_curly ~next_line s lines ~line spans ~start =
   | '\'' | '\"' as char ->
       (* https://spec.commonmark.org/current/#double-quoted-attribute-value
          https://spec.commonmark.org/current/#single-quoted-attribute-value *)
-      accept_to ~char ~next_line s lines ~line spans ~after:start
+      accept_upto ~char ~next_line s lines ~line spans ~after:start |> Option.map (fun x -> x, Some char)
   | c ->
       (* https://spec.commonmark.org/current/#unquoted-attribute-value *)
-      unquoted_attribute_value ~allow_curly ~next_line s lines ~line spans ~start
+      unquoted_attribute_value ~allow_curly ~next_line s lines ~line spans ~start |> Option.map (fun x -> x, None)
 
 let attribute ~allow_curly ~next_line s lines ~line spans ~start =
   (* https://spec.commonmark.org/current/#attribute *)
@@ -787,7 +787,7 @@ let attribute ~allow_curly ~next_line s lines ~line spans ~start =
                   empty_spans ~start
               with
               | None -> None
-              | Some (lines, line, value_span, last_attr_value) ->
+              | Some ((lines, line, value_span, last_attr_value), delimiter) ->
                  (* let print_spans s spans = *)
                  (*   let print_line (i, {line_pos ; first ; last}) = *)
                  (*     Format.printf "  line(_start): %d\n" i; *)
@@ -810,7 +810,7 @@ let attribute ~allow_curly ~next_line s lines ~line spans ~start =
                  (* print_spans "combined" spans ; *)
                  Some
                    (lines, line, spans, last_attr_value,
-                    (name_span, Some value_span))
+                    (name_span, Some (value_span, delimiter)))
 
 let open_tag ~next_line s lines ~line ~start:tag_start = (* tag_start has < *)
   (* https://spec.commonmark.org/current/#open-tag *)
@@ -1066,7 +1066,7 @@ type html_block_end_cond =
 type attributes = [
   | `Class of rev_spans
   | `Id of rev_spans
-  | `Kv_attr of  line_span * rev_spans option
+  | `Kv_attr of  line_span * (rev_spans * char option (* delimiter *)) option
 ]
 
 type line_type =
