@@ -171,19 +171,9 @@ module Attributes = struct
   let add (key, meta) value t =
     match key, value with
     | "id", Some ({v = value; _}, meta) ->
-       let value = match value.[0] with
-         | '"' ->
-            String.sub value 1 (String.length value - 2)
-         | _ -> value
-       in
        set_id t (value, meta)
     | "class", Some ({v = value; _}, meta) ->
-       let values = match value.[0] with
-         | '"' ->
-            let value = String.sub value 1 (String.length value - 2) in
-            String.split_on_char ' ' value
-         | _ -> [ value ]
-       in
+       let values = String.split_on_char ' ' value in
        List.fold_left (fun t value -> add_class t (value, meta)) t values
     | _ ->
        let kv_attributes = ((key, meta), value) :: t.kv_attributes in
