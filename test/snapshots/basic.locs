@@ -97,7 +97,7 @@ File "basic.md", lines 1-195
   Blank line:
   File "basic.md", line 20
   Block quote:
-  File "basic.md", lines 21-24, characters 2-22
+  File "basic.md", lines 21-24, characters 0-22
     Paragraph:
     File "basic.md", lines 21-24, characters 2-22
       Inlines:
@@ -357,7 +357,7 @@ File "basic.md", lines 1-195
   Blank line:
   File "basic.md", line 57
   Block quote:
-  File "basic.md", lines 58-60, characters 2-18
+  File "basic.md", lines 58-60, characters 0-18
     Link reference definition:
     File "basic.md", lines 58-60, characters 2-18
       Label:
@@ -441,7 +441,7 @@ File "basic.md", lines 1-195
   Blank line:
   File "basic.md", line 72
   Block quote:
-  File "basic.md", lines 73-74, characters 3-58
+  File "basic.md", lines 73-74, characters 0-58
     Paragraph:
     File "basic.md", lines 73-74, characters 3-58
       Inlines:
@@ -493,9 +493,9 @@ File "basic.md", lines 1-195
   Blank line:
   File "basic.md", line 84
   Block quote:
-  File "basic.md", lines 85-88, characters 8-43
+  File "basic.md", lines 85-88, characters 2-43
     Block quote:
-    File "basic.md", lines 85-88, characters 8-43
+    File "basic.md", lines 85-88, characters 6-43
       Paragraph:
       File "basic.md", lines 85-88, characters 8-43
         Inlines:
@@ -535,7 +535,7 @@ File "basic.md", lines 1-195
   Blank line:
   File "basic.md", line 89
   Block quote:
-  File "basic.md", line 90, characters 3-19
+  File "basic.md", line 90, characters 0-19
     Heading, level 2:
     File "basic.md", line 90, characters 3-19
       Text:
@@ -547,7 +547,7 @@ File "basic.md", lines 1-195
     Text:
     File "basic.md", line 92, characters 2-29
   Block quote:
-  File "basic.md", line 93, characters 3-18
+  File "basic.md", line 93, characters 0-18
     Paragraph:
     File "basic.md", line 93, characters 3-18
       Text:
@@ -621,7 +621,7 @@ File "basic.md", lines 1-195
   Blank line:
   File "basic.md", line 120
   Block quote:
-  File "basic.md", lines 121-128, characters 2-9
+  File "basic.md", lines 121-128, characters 0-9
     Code block:
     File "basic.md", lines 121-128, characters 2-9
       Opening fence:
@@ -671,7 +671,7 @@ File "basic.md", lines 1-195
   Blank line:
   File "basic.md", line 136
   Block quote:
-  File "basic.md", lines 137-139, characters 2-10
+  File "basic.md", lines 137-139, characters 0-10
     Heading, level 2:
     File "basic.md", lines 137-139, characters 2-10
       Inlines:
@@ -793,7 +793,7 @@ File "basic.md", lines 1-195
   Blank line:
   File "basic.md", line 162
   Block quote:
-  File "basic.md", lines 163-164, characters 2-23
+  File "basic.md", lines 163-164, characters 0-23
     Blocks:
     File "basic.md", lines 163-164, characters 2-23
       Paragraph:
@@ -887,7 +887,7 @@ File "basic.md", lines 1-195
   Blank line:
   File "basic.md", line 177
   Block quote:
-  File "basic.md", lines 178-182, characters 4-9
+  File "basic.md", lines 178-182, characters 0-9
     Paragraph:
     File "basic.md", lines 178-182, characters 4-9
       Inlines:
@@ -951,7 +951,7 @@ File "basic.md", lines 1-195
   Blank line:
   File "basic.md", line 193
   Block quote:
-  File "basic.md", line 194, characters 3-10
+  File "basic.md", line 194, characters 0-10
     Thematic break:
     File "basic.md", line 194, characters 3-10
   Blank line:
