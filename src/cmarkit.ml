@@ -2060,7 +2060,7 @@ module Block_struct = struct
   type paragraph = { maybe_ref : bool; lines : line_span list }
 
   type t =
-  | Block_quote of Layout.indent * t list * line_span (* loc of initial marker *)
+  | Block_quote of Layout.indent * line_span (* loc of initial marker *) * t list
   | Blank_line of space_pad * line_span
   | Code_block of code_block
   | Heading of heading
@@ -2326,8 +2326,8 @@ module Block_struct = struct
       Html_block { h with end_cond = None } :: bs
 
   let rec end_doc p = function
-  | Block_quote (indent, bq, marker) :: bs ->
-      Block_quote (indent, end_doc p bq, marker) :: bs
+  | Block_quote (indent, marker, bq) :: bs ->
+      Block_quote (indent, marker, end_doc p bq) :: bs
   | List list :: bs -> close_list p list bs
   | Paragraph par :: bs -> close_paragraph p par bs
   | Code_block (`Indented ls) :: bs -> close_indented_code_block p ls bs
@@ -2419,7 +2419,7 @@ module Block_struct = struct
   | Match.Blank_line -> blank_line p :: bs
   | Indented_code_block_line -> indented_code_block p :: bs
   | Block_quote_line marker ->
-      Block_quote (indent, add_open_blocks p [], marker) :: bs
+      Block_quote (indent, marker, add_open_blocks p []) :: bs
   | Thematic_break_line last -> thematic_break p ~indent ~last :: bs
   | List_marker_line m -> list p ~indent m bs
   | Atx_heading_line (level, after_open, first_content, last_content) ->
@@ -2504,7 +2504,7 @@ module Block_struct = struct
     | Blank_line ->
         blank_line p :: close_paragraph p par bs
     | Block_quote_line marker ->
-        Block_quote (indent, add_open_blocks p [], marker)
+        Block_quote (indent, marker, add_open_blocks p [])
         :: (close_paragraph p par bs)
     | Setext_underline_line (level, last_underline) ->
         let bs = close_paragraph p par bs in
@@ -2576,10 +2576,10 @@ module Block_struct = struct
 
   let rec try_lazy_continuation p ~indent_start = function
   | Paragraph par :: bs -> Some (add_paragraph_line p ~indent_start par bs)
-  | Block_quote (indent, bq, marker) :: bs ->
+  | Block_quote (indent, marker, bq) :: bs ->
       begin match try_lazy_continuation p ~indent_start bq with
       | None -> None
-      | Some bq -> Some (Block_quote (indent, bq, marker) :: bs)
+      | Some bq -> Some (Block_quote (indent, marker, bq) :: bs)
       end
   | List l :: bs ->
       let i = List.hd l.items in
@@ -2605,19 +2605,19 @@ module Block_struct = struct
     let indent_start = p.current_char and indent = current_indent p in
     match match_line_type ~indent ~no_setext:true p with
     | Block_quote_line _ ->
-        Block_quote (indent_layout, add_line p bq, marker) :: bs
+        Block_quote (indent_layout, marker, add_line p bq) :: bs
     | (Indented_code_block_line (* Looks like a *) | Paragraph_line) as ltype ->
         begin match try_lazy_continuation p ~indent_start bq with
-        | Some bq -> Block_quote (indent_layout, bq, marker) :: bs
+        | Some bq -> Block_quote (indent_layout, marker, bq) :: bs
         | None ->
             let bs =
-              Block_quote (indent_layout, close_last_block p bq, marker) :: bs
+              Block_quote (indent_layout, marker, close_last_block p bq) :: bs
             in
             add_open_blocks_with_line_class p ~indent ~indent_start bs ltype
         end
     | ltype ->
         let bs =
-          Block_quote (indent_layout, close_last_block p bq, marker) :: bs
+          Block_quote (indent_layout, marker, close_last_block p bq) :: bs
         in
         add_open_blocks_with_line_class p ~indent ~indent_start bs ltype
 
@@ -2688,7 +2688,7 @@ module Block_struct = struct
   | List list :: bs -> try_add_to_list_item p list bs
   | Code_block (`Indented ls) :: bs -> try_add_to_indented_code_block p ls bs
   | Code_block (`Fenced f) :: bs -> try_add_to_fenced_code_block p f bs
-  | Block_quote (ind, bq, marker) :: bs -> try_add_to_block_quote p ind bq marker bs
+  | Block_quote (ind, marker, bq) :: bs -> try_add_to_block_quote p ind bq marker bs
   | Html_block html :: bs -> try_add_to_html_block p html bs
   | Ext_table (ind, rows) :: bs -> try_add_to_table p ind rows bs
   | Ext_footnote (i, l, blocks) :: bs -> try_add_to_footnote p i l blocks bs
@@ -2965,7 +2965,7 @@ and block_struct_to_list p list =
   Block.List ({ type' = list.Block_struct.list_type; tight; items }, meta)
 
 and block_struct_to_block p = function
-| Block_struct.Block_quote (ind, bs, marker) ->
+| Block_struct.Block_quote (ind, marker, bs) ->
     block_struct_to_block_quote p ind marker bs
 | Block_struct.List list -> block_struct_to_list p list
 | Block_struct.Paragraph par -> block_struct_to_paragraph p par
