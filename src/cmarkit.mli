@@ -279,12 +279,14 @@ module Attributes : sig
   type value = {v : string ; delimiter: char option}
   (** The type for attributes values. *)
 
+  type kv = key node * value node option
+  
   val empty : t
   (** [empty] is for when there is no attributes. *)
 
   val is_empty : t -> bool
 
-  val make : ?kv_attributes:(key node * value node option) list ->
+  val make : ?kv_attributes:kv list ->
 ?id:string node option -> ?class':string node list -> unit -> t
   (** [make ~attributes] is TODO. *)
 
@@ -311,8 +313,11 @@ module Attributes : sig
   val mem : key -> t -> bool
   (** [mem k m] is [true] iff [k] is bound in [m]. *)
 
-  val add : key node -> value node option -> t -> t
+  val add : keep_base:bool -> key node -> value node option -> t -> t
   (** [add k v m] is [m] with key [k] bound to [v]. *)
+
+  val remove : key -> t -> t
+  (** [remove k m] is [m] with key [k] unbound. *)
 
   val find : string -> t -> (key node * value node option) option
   (** [find k m] the value of [k] in [m], if any. *)
@@ -327,10 +332,10 @@ module Attributes : sig
      [< `Class of string node
      | `Id of string node
      | `Kv of (key node) * value node option ]
-       option) ->
+       list) ->
     t -> t
 
-  val merge : base:t -> new_attrs:t -> t
+  val merge : keep_base:bool -> base:t -> new_attrs:t -> t
 end
 
 type 'a attributed = 'a * Attributes.t node
@@ -1100,22 +1105,11 @@ module Block : sig
   (** Headings. *)
   module Heading : sig
 
-    type atx_layout =
+    type layout =
       { indent : Layout.indent; (** Indent to ['#']. *)
         after_opening : Layout.blanks; (** Blanks after ['#']. *)
         closing : Layout.string; (** Closing sequence of ['#'] and blanks. *) }
     (** The type for ATX heading layout. *)
-
-    type setext_layout =
-      { leading_indent : Layout.indent; (** Of heading first line. *)
-        trailing_blanks : Layout.blanks; (** Of heading last line. *)
-        underline_indent : Layout.indent; (** Indentation of underline. *)
-        underline_count : Layout.count node; (** Underline char count. *)
-        underline_blanks : Layout.blanks; (** Underline trailing blanks. *) }
-    (** The type for setext heading layout. *)
-
-    type layout = [ `Atx of atx_layout | `Setext of setext_layout ]
-    (** The type for heading layouts. *)
 
     type id =
     [ `Auto of string (** Automatically derived. *)
@@ -1125,8 +1119,7 @@ module Block : sig
 
     type t
     (** The type for {{:https://spec.commonmark.org/0.30/#atx-headings}
-        ATX} and {{:https://spec.commonmark.org/0.30/#setext-headings}Setext}
-        headings. *)
+        ATX} headings. *)
 
     val make : ?id:id -> ?layout:layout -> level:int -> Inline.t -> t
     (** [make ~level text] is a heading with given
@@ -1468,7 +1461,8 @@ module Doc : sig
   val of_string :
     ?defs:Label.defs -> ?resolver:Label.resolver -> ?nested_links:bool ->
     ?heading_auto_ids:bool -> ?layout:bool -> ?locs:bool ->
-    ?file:Textloc.fpath -> ?strict:bool -> string -> t
+    ?file:Textloc.fpath -> ?loc_offset: int * (int * int) -> ?strict:bool -> string
+    -> t
     (** [of_string md] is a document from the UTF-8 encoded CommonMark
         document [md].
 
@@ -1585,13 +1579,8 @@ module Mapper : sig
 
   val make :
     ?inline_ext_default:Inline.t map -> ?block_ext_default:Block.t map ->
-    ?inline:Inline.t mapper -> ?block:Block.t mapper -> ?attrs:([ `Class of string node
-        | `Id of string node
-        | `Kv of Attributes.key node * Attributes.value node option ] ->
-        [ `Class of string node
-        | `Id of string node
-        | `Kv of Attributes.key node * Attributes.value node option ] option) ->
- unit -> t
+    ?inline:Inline.t mapper -> ?block:Block.t mapper ->
+    ?attrs:(Attributes.t -> Attributes.t) -> unit -> t
   (** [make ?inline ?block ()] is a mapper using [inline] and [block]
       to map the abstract syntax tree. Both default to [fun _ _ -> `Default].
 
@@ -1782,6 +1771,26 @@ let code_block_langs doc =
   let langs = Folder.fold_doc folder String_set.empty doc in
   String_set.elements langs
 ]} *)
+end
+
+module Fold_mapper : sig
+
+  type 'a t = {
+    block : 'a t -> 'a -> Block.t -> 'a * Block.t option;
+    inline : 'a t -> 'a -> Inline.t -> 'a * Inline.t option;
+    attrs : 'a -> Attributes.t -> 'a * Attributes.t;
+  }
+
+  val default : 'a t
+
+  val make :
+    ?block:('a t -> 'a -> Block.t -> 'a * Block.t option) ->
+    ?inline:('a t -> 'a -> Inline.t -> 'a * Inline.t option) ->
+    ?attrs:('a -> Attributes.t -> 'a * Attributes.t) ->
+    unit ->
+    'a t
+
+  val fold_map_doc : 'a t -> 'a -> Doc.t -> 'a * Doc.t
 end
 
 (** {1:extensions Extensions}

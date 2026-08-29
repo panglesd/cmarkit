@@ -312,13 +312,12 @@ type attributes = [
 type line_type =
 | Atx_heading_line of heading_level * byte_pos (* after # *) * first * last
 | Blank_line
-| Block_quote_line
+| Block_quote_line of line_span (* loc of marker *)
 | Fenced_code_block_line of first * last * (first * last) option
 | Html_block_line of html_block_end_cond
 | Indented_code_block_line
 | List_marker_line of ([ `Ordered of int * char | `Unordered of char ] * last)
 | Paragraph_line
-| Setext_underline_line of heading_level * last
 | Thematic_break_line of last
 | Ext_table_row of last
 | Ext_footnote_label of rev_spans * last * string
@@ -337,12 +336,6 @@ val atx_heading :
   string -> last:byte_pos -> start:byte_pos -> line_type
 (** [atx_heading s ~first ~last] is an ATX heading in the range
     \[[start];[last]\]. *)
-
-val setext_heading_underline :
-  string -> last:byte_pos -> start:byte_pos -> line_type
-(** [setext_heading_underline s ~last ~start] is a setext heading
-    underline in the range \[[start];[last]\]. The returned position
-    is the last underline char. *)
 
 val fenced_code_block_start :
   string -> last:byte_pos -> start:byte_pos -> line_type
@@ -399,7 +392,7 @@ val md_attributes:
     option
 
 val ext_attributes :
-  string -> last:byte_pos -> start:byte_pos -> line_type
+  string -> last:byte_pos -> start:byte_pos -> line_pos:Textloc.line_pos -> line_type
 (** [ext_attributes s ~last ~start] matches an attribute specification.
     This remains on the same line. *)
 
